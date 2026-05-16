@@ -4,14 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TaskMate - Kanban Board</title>
-  
+
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  
+
   <!-- External CSS -->
   @vite(['resources/css/styles.css', 'resources/js/script.js'])
 </head>
 <body>
+<div class="flex items-center gap-4">
+<!-- Logout -->
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+
+                <button type="submit"
+                    class="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg transition duration-300 hover:scale-105">
+                    Logout
+                </button>
+            </form>
+            
+
+</div>
 
 <!-- LOADER -->
 <div id="loader">
@@ -26,6 +39,8 @@
   <div class="loader-status" id="loaderStatus">Memuat aplikasi...</div>
 </div>
 
+
+
 <!-- APP -->
 <div id="app">
   <!-- NAVBAR -->
@@ -35,7 +50,7 @@
       <div class="nav-logo-text">TaskMate</div>
     </a>
     <div class="nav-divider"></div>
-    
+
     <div class="nav-stats">
       <div class="stat-chip">
         <div class="stat-dot" style="background: #6366f1;"></div>
@@ -59,6 +74,7 @@
       </div>
     </div>
 
+
     <div class="nav-right">
       <div class="search-wrap">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -67,7 +83,7 @@
         </svg>
         <input type="text" id="searchInput" placeholder="Cari task...">
       </div>
-      
+
       <div class="progress-ring-wrap">
         <span id="ringPct">0%</span>
         <svg class="mini-ring" width="36" height="36" viewBox="0 0 36 36">
