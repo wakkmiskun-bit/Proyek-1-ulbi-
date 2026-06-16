@@ -3,81 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>TaskMate - Kanban Board</title>
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-  <!-- External CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
   @vite(['resources/css/styles.css', 'resources/js/script.js'])
 </head>
 <body>
-<div class="flex items-center gap-4">
-<!-- Logout -->
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
 
-                <button type="submit"
-                    class="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg transition duration-300 hover:scale-105">
-                    Logout
-                </button>
-            </form>
-            
+<div id="app" class="visible">
 
-</div>
-
-<!-- LOADER -->
-<div id="loader">
-  <div class="loader-logo">
-    <div class="loader-icon">📋</div>
-    <div class="loader-wordmark">TaskMate</div>
-  </div>
-  <div class="loader-tagline">Task Management</div>
-  <div class="loader-bar-wrap">
-    <div class="loader-bar"></div>
-  </div>
-  <div class="loader-status" id="loaderStatus">Memuat aplikasi...</div>
-</div>
-
-
-
-<!-- APP -->
-<div id="app">
-  <!-- NAVBAR -->
+  <!-- ═══ NAVBAR ═══ -->
   <nav class="navbar">
     <a href="#" class="nav-logo">
       <div class="nav-logo-icon">📋</div>
       <div class="nav-logo-text">TaskMate</div>
     </a>
+
     <div class="nav-divider"></div>
 
     <div class="nav-stats">
       <div class="stat-chip">
-        <div class="stat-dot" style="background: #6366f1;"></div>
+        <div class="stat-dot" style="background:#7c6af7"></div>
         <span>To Do</span>
         <b data-count="todo">0</b>
       </div>
       <div class="stat-chip">
-        <div class="stat-dot" style="background: #f59e0b;"></div>
+        <div class="stat-dot" style="background:#f4a13e"></div>
         <span>Doing</span>
         <b data-count="doing">0</b>
       </div>
       <div class="stat-chip">
-        <div class="stat-dot" style="background: #ec4899;"></div>
+        <div class="stat-dot" style="background:#e05ec8"></div>
         <span>Review</span>
         <b data-count="review">0</b>
       </div>
       <div class="stat-chip">
-        <div class="stat-dot" style="background: #10b981;"></div>
+        <div class="stat-dot" style="background:#34d399"></div>
         <span>Done</span>
         <b data-count="done">0</b>
       </div>
     </div>
 
-
     <div class="nav-right">
       <div class="search-wrap">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
@@ -86,106 +55,122 @@
 
       <div class="progress-ring-wrap">
         <span id="ringPct">0%</span>
-        <svg class="mini-ring" width="36" height="36" viewBox="0 0 36 36">
+        <svg class="mini-ring" width="34" height="34" viewBox="0 0 36 36">
           <circle class="ring-bg" cx="18" cy="18" r="10"></circle>
           <circle id="ringFill" class="ring-fill" cx="18" cy="18" r="10" style="stroke-dasharray:62.8; stroke-dashoffset:62.8;"></circle>
         </svg>
       </div>
 
-      <button id="darkBtn" class="nav-btn">☀️</button>
+      <button id="darkBtn" class="nav-btn" title="Toggle tema">☀️</button>
+
+      <div class="stat-chip" title="Akun aktif">
+        <span>{{ auth()->user()->name }}</span>
+        <b style="font-size:11px;opacity:.8">{{ auth()->user()->nim }}</b>
+      </div>
+
+      <form method="POST" action="{{ route('logout') }}" style="margin:0">
+        @csrf
+        <button type="submit" class="btn-logout">Logout</button>
+      </form>
     </div>
   </nav>
 
-  <!-- MOBILE COL TABS -->
+  <!-- ═══ MOBILE COL TABS ═══ -->
   <div class="mobile-col-tabs">
-    <button class="mob-col-tab active" data-col="todo">
-      <span>📋</span>
-      <span>To Do</span>
-    </button>
-    <button class="mob-col-tab" data-col="doing">
-      <span>⚡</span>
-      <span>Doing</span>
-    </button>
-    <button class="mob-col-tab" data-col="review">
-      <span>👁</span>
-      <span>Review</span>
-    </button>
-    <button class="mob-col-tab" data-col="done">
-      <span>✅</span>
-      <span>Done</span>
-    </button>
+    <button class="mob-col-tab active" data-col="todo"><span>📋</span><span>To Do</span></button>
+    <button class="mob-col-tab" data-col="doing"><span>⚡</span><span>Doing</span></button>
+    <button class="mob-col-tab" data-col="review"><span>👁</span><span>Review</span></button>
+    <button class="mob-col-tab" data-col="done"><span>✅</span><span>Done</span></button>
   </div>
 
-  <!-- BOARD -->
+  <!-- ═══ BOARD ═══ -->
   <div class="board-wrap">
     <div class="board">
+
       <!-- TO DO -->
       <div class="list todo" data-col="todo">
         <div class="list-header">
           <div class="list-header-left">
-            <div class="col-dot"></div>
+            <div class="col-stripe"></div>
             <div class="col-label">To Do</div>
           </div>
           <div class="col-count" data-count="todo">0</div>
         </div>
         <div class="list-body">
           <div class="cards" id="cards-todo"></div>
-          <button class="add-btn" data-col="todo">+ Tambah Task</button>
+          <button class="add-btn" data-col="todo">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Tambah Task
+          </button>
           <div class="add-box" id="addbox-todo"></div>
         </div>
+        <div class="col-foot"><div class="col-prog-bar"><div class="col-prog-fill"></div></div></div>
       </div>
 
       <!-- DOING -->
       <div class="list doing" data-col="doing">
         <div class="list-header">
           <div class="list-header-left">
-            <div class="col-dot"></div>
+            <div class="col-stripe"></div>
             <div class="col-label">Doing</div>
           </div>
           <div class="col-count" data-count="doing">0</div>
         </div>
         <div class="list-body">
           <div class="cards" id="cards-doing"></div>
-          <button class="add-btn" data-col="doing">+ Tambah Task</button>
+          <button class="add-btn" data-col="doing">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Tambah Task
+          </button>
           <div class="add-box" id="addbox-doing"></div>
         </div>
+        <div class="col-foot"><div class="col-prog-bar"><div class="col-prog-fill"></div></div></div>
       </div>
 
       <!-- REVIEW -->
       <div class="list review" data-col="review">
         <div class="list-header">
           <div class="list-header-left">
-            <div class="col-dot"></div>
+            <div class="col-stripe"></div>
             <div class="col-label">Review</div>
           </div>
           <div class="col-count" data-count="review">0</div>
         </div>
         <div class="list-body">
           <div class="cards" id="cards-review"></div>
-          <button class="add-btn" data-col="review">+ Tambah Task</button>
+          <button class="add-btn" data-col="review">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Tambah Task
+          </button>
           <div class="add-box" id="addbox-review"></div>
         </div>
+        <div class="col-foot"><div class="col-prog-bar"><div class="col-prog-fill"></div></div></div>
       </div>
 
       <!-- DONE -->
       <div class="list done" data-col="done">
         <div class="list-header">
           <div class="list-header-left">
-            <div class="col-dot"></div>
+            <div class="col-stripe"></div>
             <div class="col-label">Done</div>
           </div>
           <div class="col-count" data-count="done">0</div>
         </div>
         <div class="list-body">
           <div class="cards" id="cards-done"></div>
-          <button class="add-btn" data-col="done">+ Tambah Task</button>
+          <button class="add-btn" data-col="done">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Tambah Task
+          </button>
           <div class="add-box" id="addbox-done"></div>
         </div>
+        <div class="col-foot"><div class="col-prog-bar"><div class="col-prog-fill"></div></div></div>
       </div>
+
     </div>
   </div>
 
-  <!-- MODAL -->
+  <!-- ═══ MODAL ═══ -->
   <div class="modal-overlay" id="cardModal">
     <div class="modal">
       <div class="modal-head">
@@ -193,19 +178,14 @@
         <button id="modalCloseBtn" class="modal-close-btn">✕</button>
       </div>
       <div class="modal-body">
-        <!-- Title -->
         <div class="form-group">
           <label class="form-label">Judul</label>
           <input id="mTitle" class="form-ctrl" placeholder="Nama task...">
         </div>
-
-        <!-- Description -->
         <div class="form-group">
           <label class="form-label">Deskripsi</label>
           <textarea id="mDesc" class="form-ctrl" rows="3" placeholder="Detail tambahan..."></textarea>
         </div>
-
-        <!-- Priority -->
         <div class="form-group">
           <label class="form-label">Prioritas</label>
           <div class="modal-priority-row">
@@ -214,14 +194,10 @@
             <div class="mp-opt low" data-p="low">🟢 Rendah</div>
           </div>
         </div>
-
-        <!-- Due Date -->
         <div class="form-group">
           <label class="form-label">Tenggat Waktu</label>
           <input id="mDue" class="form-ctrl" type="date">
         </div>
-
-        <!-- Move to Column -->
         <div class="form-group">
           <label class="form-label">Pindahkan ke Kolom</label>
           <div class="move-col-row">
@@ -231,18 +207,15 @@
             <button class="move-col-btn done" data-col="done">✅ Done</button>
           </div>
         </div>
-
-        <!-- Checklist -->
         <div class="form-group">
           <label class="form-label">Checklist</label>
           <div class="checklist-list" id="clList"></div>
-          <div class="cl-add-row" style="gap:8px">
-            <input id="clInput" class="form-ctrl" placeholder="Item baru..." style="margin:0">
-            <button id="clAddBtn" class="btn-primary" style="padding: 10px 14px;">+ Tambah</button>
+          <div class="cl-add-row">
+            <input id="clInput" class="form-ctrl" placeholder="Item baru...">
+            <button id="clAddBtn" class="btn-primary" style="padding:10px 14px">+ Tambah</button>
           </div>
         </div>
       </div>
-
       <div class="modal-foot">
         <button id="modalCancelBtn" class="btn-ghost">Batal</button>
         <button id="modalSaveBtn" class="btn-primary">Simpan</button>
@@ -250,10 +223,10 @@
     </div>
   </div>
 
-  <!-- TOAST -->
+  <!-- ═══ TOAST ═══ -->
   <div id="toast-wrap"></div>
 
-  <!-- MOBILE BOTTOM NAV -->
+  <!-- ═══ MOBILE BOTTOM NAV ═══ -->
   <div class="mobile-bottom-nav" id="mobileNav">
     <button class="mob-nav-tab active" data-col="todo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -280,13 +253,9 @@
       <span>Done</span>
     </button>
   </div>
+
 </div>
 
-<!-- Sortable.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-
-<!-- External JavaScript -->
-<script src="{{ asset('js/script.js') }}"></script>
-
 </body>
 </html>

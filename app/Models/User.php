@@ -18,10 +18,18 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'nim',
         'name',
         'email',
         'password',
+        'role',
     ];
+
+    /** Satu akun = satu kumpulan tugas pribadi (terisolasi via user_id). */
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
 
     /**
      * The attributes that should be hidden for serialization.

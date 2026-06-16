@@ -1,35 +1,84 @@
 // ═══════════════════════════════════════════
-//  LOADER
+//  SMOOTH PAGE TRANSITIONS
 // ═══════════════════════════════════════════
-const loadMsgs = ['Memuat aplikasi...','Menyiapkan board...','Menghubungkan data...','Siap! 🎉'];
-let msgIdx = 0;
-const statusEl = document.getElementById('loaderStatus');
-const msgInterval = setInterval(() => {
-  msgIdx++;
-  if (msgIdx < loadMsgs.length) statusEl.textContent = loadMsgs[msgIdx];
-}, 500);
 
-setTimeout(() => {
-  clearInterval(msgInterval);
-  document.getElementById('loader').classList.add('hide');
-  const app = document.getElementById('app');
-  app.classList.add('visible');
-  // stagger column animation
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('a[href]');
+  if (link && link.hostname === window.location.hostname && !link.hasAttribute('download')) {
+    e.preventDefault();
+    const href = link.getAttribute('href');
+    document.body.style.animation = 'pageExit 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+    setTimeout(() => {
+      window.location.href = href;
+    }, 600);
+  }
+});
+
+// Prevent exit animation on form submit and logout
+document.addEventListener('submit', (e) => {
+  const form = e.target;
+  document.body.style.animation = 'pageExit 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+});
+
+// ═══════════════════════════════════════════
+//  APP INIT
+// ═══════════════════════════════════════════
+// Stagger column animation on load
+window.addEventListener('load', () => {
   document.querySelectorAll('.list').forEach((l, i) => {
     l.style.opacity = '0';
     l.style.transform = 'translateY(20px)';
     l.style.transition = `opacity .5s ${i*0.1}s ease, transform .5s ${i*0.1}s ease`;
     setTimeout(() => { l.style.opacity='1'; l.style.transform='translateY(0)'; }, 50);
   });
-}, 2200);
+});
 
 // ═══════════════════════════════════════════
-//  STATE
+//  STATE & API
 // ═══════════════════════════════════════════
 const COLS = ['todo','doing','review','done'];
 const cardStore = new Map(); // el → data object
 let activeCard = null;
 let activePriority = 'medium';
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  if (res.status === 403) {
+    toast('Akses ditolak — tugas ini bukan milik Anda', '🚫');
+    throw new Error('Forbidden');
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    toast(err.message || 'Terjadi kesalahan pada server', '⚠️');
+    throw new Error(err.message || 'Request failed');
+  }
+
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function taskPayload(data) {
+  return {
+    title: data.title,
+    description: data.desc || '',
+    status: data.col,
+    priority: data.priority,
+    due_date: data.due || null,
+    checklist: data.checklist || [],
+  };
+}
 
 // ═══════════════════════════════════════════
 //  BUILD ADD-BOX for each column
@@ -69,15 +118,21 @@ document.querySelectorAll('.add-btn').forEach(btn => {
     box.style.display = 'block';
     box.querySelector('.ab-title').focus();
 
-    box.querySelector('.ab-save').onclick = () => {
+    box.querySelector('.ab-save').onclick = async () => {
       const title = box.querySelector('.ab-title').value.trim();
       if (!title) return;
       const priority = box.querySelector('.p-opt.selected')?.dataset.p || 'medium';
       const due = box.querySelector('.ab-due').value;
-      createCard(col, title, priority, due);
-      box.style.display = 'none';
-      box.querySelector('.ab-title').value = '';
-      box.querySelector('.ab-due').value = '';
+      const btn = box.querySelector('.ab-save');
+      btn.disabled = true;
+      try {
+        await createCard(col, title, priority, due);
+        box.style.display = 'none';
+        box.querySelector('.ab-title').value = '';
+        box.querySelector('.ab-due').value = '';
+      } finally {
+        btn.disabled = false;
+      }
     };
 
     box.querySelector('.ab-cancel').onclick = () => {
@@ -95,16 +150,47 @@ document.querySelectorAll('.add-btn').forEach(btn => {
 // ═══════════════════════════════════════════
 //  CREATE CARD
 // ═══════════════════════════════════════════
-function createCard(col, title, priority='medium', due='', checklist=[]) {
+async function createCard(col, title, priority='medium', due='', checklist=[]) {
+  const saved = await apiFetch('/tasks', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...taskPayload({ title, desc: '', priority, due, checklist, col }),
+      status: col,
+    }),
+  });
+  const card = mountCard(saved);
+  toast(`Card ditambahkan ke ${colLabel(col)}`, '✅');
+  return card;
+}
+
+function mountCard(task) {
+  const col = task.status;
   const card = document.createElement('div');
   card.className = 'card';
-  const data = { title, desc:'', priority, due, checklist: [...checklist], col };
+  card.dataset.taskId = task.id;
+  const data = {
+    id: task.id,
+    title: task.title,
+    desc: task.description || '',
+    priority: task.priority,
+    due: task.due_date ? String(task.due_date).slice(0, 10) : '',
+    checklist: Array.isArray(task.checklist) ? [...task.checklist] : [],
+    col,
+  };
   cardStore.set(card, data);
   renderCard(card);
   document.getElementById('cards-'+col).appendChild(card);
   updateStats();
-  toast(`Card ditambahkan ke ${colLabel(col)}`, '✅');
   return card;
+}
+
+async function loadTasks() {
+  const tasks = await apiFetch('/tasks');
+  COLS.forEach(col => {
+    document.getElementById('cards-'+col).innerHTML = '';
+  });
+  cardStore.clear();
+  tasks.forEach(task => mountCard(task));
 }
 
 function renderCard(card) {
@@ -158,23 +244,37 @@ function renderCard(card) {
     if (idx < COLS.length-1) moveCard(card, COLS[idx+1]);
   };
   // Delete
-  card.querySelector('.card-del-btn').onclick = e => {
+  card.querySelector('.card-del-btn').onclick = async e => {
     e.stopPropagation();
-    card.style.transition = 'opacity .25s, transform .25s';
-    card.style.opacity = '0';
-    card.style.transform = 'scale(.9)';
-    setTimeout(() => { cardStore.delete(card); card.remove(); updateStats(); }, 250);
-    toast('Card dihapus', '🗑️');
+    const data = cardStore.get(card);
+    if (!data?.id) return;
+    try {
+      await apiFetch(`/tasks/${data.id}`, { method: 'DELETE' });
+      card.style.transition = 'opacity .25s, transform .25s';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(.9)';
+      setTimeout(() => { cardStore.delete(card); card.remove(); updateStats(); }, 250);
+      toast('Card dihapus', '🗑️');
+    } catch (_) {}
   };
   // Open modal
   card.onclick = () => openModal(card);
 }
 
-function moveCard(card, toCol) {
+async function moveCard(card, toCol) {
   const data = cardStore.get(card);
   const fromCol = card.closest('.list').dataset.col;
-  if (fromCol === toCol) return;
-  // animate out
+  if (fromCol === toCol || !data?.id) return;
+
+  try {
+    await apiFetch(`/tasks/${data.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ ...taskPayload(data), status: toCol }),
+    });
+  } catch (_) {
+    return;
+  }
+
   card.style.transition = 'opacity .2s, transform .2s';
   card.style.opacity = '0'; card.style.transform = 'translateX(30px)';
   setTimeout(() => {
@@ -197,14 +297,25 @@ COLS.forEach(col => {
   new Sortable(document.getElementById('cards-'+col), {
     group: 'shared', animation: 180,
     ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-    onEnd(evt) {
+    async onEnd(evt) {
       const card = evt.item;
       const newCol = card.closest('.list').dataset.col;
       const data = cardStore.get(card);
-      if (data && data.col !== newCol) {
+      if (data && data.col !== newCol && data.id) {
+        const prevCol = data.col;
         data.col = newCol;
-        renderCard(card);
-        toast(`Dipindahkan ke ${colLabel(newCol)}`, moveEmoji(newCol));
+        try {
+          await apiFetch(`/tasks/${data.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ ...taskPayload(data), status: newCol }),
+          });
+          renderCard(card);
+          toast(`Dipindahkan ke ${colLabel(newCol)}`, moveEmoji(newCol));
+        } catch (_) {
+          data.col = prevCol;
+          document.getElementById('cards-'+prevCol).appendChild(card);
+          renderCard(card);
+        }
       }
       updateStats();
     }
@@ -260,7 +371,7 @@ document.querySelectorAll('.mp-opt').forEach(btn => {
   };
 });
 
-document.getElementById('modalSaveBtn').onclick = () => {
+document.getElementById('modalSaveBtn').onclick = async () => {
   if (!activeCard) return;
   const data = cardStore.get(activeCard);
   const newTitle = document.getElementById('mTitle').value.trim();
@@ -269,10 +380,19 @@ document.getElementById('modalSaveBtn').onclick = () => {
   data.desc = document.getElementById('mDesc').value.trim();
   data.priority = activePriority;
   data.due = document.getElementById('mDue').value;
-  renderCard(activeCard);
-  updateStats();
-  closeModal();
-  toast('Card disimpan', '✅');
+
+  if (!data.id) return;
+
+  try {
+    await apiFetch(`/tasks/${data.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskPayload(data)),
+    });
+    renderCard(activeCard);
+    updateStats();
+    closeModal();
+    toast('Card disimpan', '✅');
+  } catch (_) {}
 };
 
 // ═══════════════════════════════════════════
@@ -454,11 +574,6 @@ function dueBadge(due) {
 }
 
 // ═══════════════════════════════════════════
-//  SAMPLE DATA
+//  LOAD USER TASKS FROM DATABASE
 // ═══════════════════════════════════════════
-createCard('todo','Riset topik skripsi','high','2025-05-15',[{text:'Cari referensi jurnal',done:true},{text:'Konsultasi dosen',done:false}]);
-createCard('todo','Setup repositori GitHub','medium','2025-05-10',[]);
-createCard('doing','Prototype UI aplikasi','high','2025-05-08',[{text:'Wireframe halaman utama',done:true},{text:'Desain komponen',done:true},{text:'Review dengan tim',done:false}]);
-createCard('doing','Belajar React.js','medium','',[{text:'Hooks & State',done:true},{text:'Context API',done:false}]);
-createCard('review','Laporan kemajuan bulanan','medium','2025-05-05',[{text:'Tulis draft',done:true},{text:'Proofreading',done:true}]);
-createCard('done','Setup lingkungan pengembangan','low','',[{text:'Install Node.js',done:true},{text:'Install VS Code',done:true}]);
+loadTasks().catch(() => toast('Gagal memuat tugas dari server', '⚠️'));
