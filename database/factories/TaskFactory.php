@@ -2,22 +2,26 @@
 
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Models\Mahasiswa;
+use App\Models\Task;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Task>
+ * @extends Factory<Task>
  */
 class TaskFactory extends Factory
 {
+    protected $model = Task::class;
+
     public function definition(): array
     {
         return [
+            'mahasiswa_id' => Mahasiswa::factory(),
             'title' => fake()->sentence(3),
             'description' => fake()->optional()->sentence(),
             'status' => fake()->randomElement(['todo', 'doing', 'review', 'done']),
             'priority' => fake()->randomElement(['high', 'medium', 'low']),
-            'due_date' => fake()->optional()->date(),
+            'deadline' => fake()->optional()->date(),
             'checklist' => [],
             'sort_order' => 0,
         ];

@@ -18,8 +18,8 @@
 
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background: #07090f;
-      color: #e2e8f5;
+      background: linear-gradient(135deg, #1c1412 0%, #291c1a 50%, #362522 100%);
+      color: #fbf7f4;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
@@ -31,28 +31,28 @@
       position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
     }
     .bg-blob {
-      position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.6;
+      position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.5;
     }
     .b1 {
       width: 500px; height: 500px; top: -150px; left: -100px;
-      background: rgba(99, 102, 241, 0.22);
+      background: rgba(233, 30, 99, 0.18);
       animation: fl1 20s ease-in-out infinite;
     }
     .b2 {
       width: 420px; height: 420px; top: -80px; right: -80px;
-      background: rgba(168, 85, 247, 0.16);
+      background: rgba(250, 246, 240, 0.08);
       animation: fl2 26s ease-in-out infinite;
     }
     .b3 {
       width: 350px; height: 350px; bottom: 0; left: 50%; transform: translateX(-50%);
-      background: rgba(217, 70, 239, 0.1);
+      background: rgba(236, 72, 153, 0.12);
       animation: fl3 32s ease-in-out infinite;
     }
     .bg-noise {
       position: absolute; inset: 0;
       background-image:
-        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+        linear-gradient(rgba(250,246,240,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(250,246,240,0.015) 1px, transparent 1px);
       background-size: 48px 48px;
     }
     @keyframes fl1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(16px,18px)} }
@@ -79,21 +79,21 @@
       display: inline-flex; align-items: center; gap: 7px;
       padding: 5px 14px;
       border-radius: 99px;
-      border: 1px solid rgba(99,102,241,0.35);
-      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(233, 30, 99, 0.35);
+      background: rgba(233, 30, 99, 0.08);
       font-size: 11px; font-weight: 700;
-      letter-spacing: 1px; text-transform: uppercase; color: #a5b4fc;
+      letter-spacing: 1px; text-transform: uppercase; color: #ff8da1;
       margin-bottom: 28px;
       opacity: 0;
       animation: up .6s ease .05s forwards;
     }
     .pill-dot {
-      width: 5px; height: 5px; border-radius: 50%; background: #818cf8;
+      width: 5px; height: 5px; border-radius: 50%; background: #f06292;
       animation: blink 2s infinite;
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    /* Logo / Title — NO gradient text, just clean white */
+    /* Logo / Title */
     .logo-wrap {
       margin-bottom: 18px;
       opacity: 0;
@@ -106,10 +106,10 @@
     .logo-icon {
       width: 52px; height: 52px;
       border-radius: 14px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: linear-gradient(135deg, #e91e63, #f06292);
       display: flex; align-items: center; justify-content: center;
       font-size: 24px;
-      box-shadow: 0 0 28px rgba(99,102,241,0.4);
+      box-shadow: 0 0 28px rgba(233, 30, 99, 0.4);
       flex-shrink: 0;
     }
     .logo-text {
@@ -117,8 +117,7 @@
       font-weight: 800;
       letter-spacing: -1.5px;
       line-height: 1;
-      color: #f1f5ff;
-      /* safe — no gradient clip, no overflow issue */
+      color: #fbf7f4;
       white-space: nowrap;
     }
 
@@ -126,7 +125,7 @@
     .tagline {
       font-size: 13px; font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
-      color: #4f5a75;
+      color: #a8938e;
       margin-bottom: 20px;
       opacity: 0;
       animation: up .6s ease .2s forwards;
@@ -134,7 +133,7 @@
 
     /* Sub */
     .sub {
-      font-size: 15px; color: #7a8aa8;
+      font-size: 15px; color: #c3b4b0;
       max-width: 360px; line-height: 1.8;
       margin-bottom: 36px; font-weight: 400;
       opacity: 0;
@@ -144,7 +143,7 @@
     /* Buttons */
     .btns {
       display: flex; gap: 10px;
-      width: 100%; max-width: 340px;
+      width: 100%; max-width: 420px;
       margin-bottom: 36px;
       opacity: 0;
       animation: up .6s ease .36s forwards;
@@ -164,17 +163,23 @@
     .btn:hover  { transform: translateY(-2px); }
     .btn:active { transform: scale(.97); }
     .btn-a {
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
       color: #fff;
-      box-shadow: 0 4px 20px rgba(99,102,241,0.38);
+      box-shadow: 0 4px 20px rgba(233, 30, 99, 0.38);
     }
-    .btn-a:hover { box-shadow: 0 6px 30px rgba(99,102,241,0.55); }
+    .btn-a:hover { box-shadow: 0 6px 30px rgba(233, 30, 99, 0.55); }
     .btn-b {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12);
-      color: #c8d0e0;
+      background: rgba(251, 247, 244, 0.05);
+      border: 1px solid rgba(251, 247, 244, 0.15);
+      color: #fbf7f4;
     }
-    .btn-b:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
+    .btn-b:hover { background: rgba(251, 247, 244, 0.09); border-color: rgba(251, 247, 244, 0.25); }
+    .btn-admin {
+      background: rgba(233, 30, 99, 0.12);
+      border: 1px solid rgba(233, 30, 99, 0.35);
+      color: #ff8da1;
+    }
+    .btn-admin:hover { background: rgba(233, 30, 99, 0.2); border-color: rgba(233, 30, 99, 0.5); }
 
     /* Stats row */
     .stats {
@@ -186,22 +191,22 @@
       display: flex; flex-direction: column; align-items: center; gap: 3px;
       padding: 12px 18px;
       border-radius: 12px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(251, 247, 244, 0.03);
+      border: 1px solid rgba(251, 247, 244, 0.07);
       min-width: 80px;
     }
     .stat-num {
-      font-size: 18px; font-weight: 800; color: #e2e8f5;
+      font-size: 18px; font-weight: 800; color: #fbf7f4;
     }
     .stat-lbl {
-      font-size: 10.5px; font-weight: 500; color: #4f5a75;
+      font-size: 10.5px; font-weight: 500; color: #a8938e;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
 
     /* Divider */
     .divider {
       width: 100%; max-width: 640px; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3) 30%, rgba(139,92,246,0.3) 70%, transparent);
+      background: linear-gradient(90deg, transparent, rgba(233, 30, 99, 0.3) 30%, rgba(250, 246, 240, 0.2) 70%, transparent);
       margin: 36px 0 0;
     }
 
@@ -223,36 +228,36 @@
     }
     .f-logo {
       width: 26px; height: 26px; border-radius: 7px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: linear-gradient(135deg, #e91e63, #f06292);
       display: flex; align-items: center; justify-content: center;
       font-size: 13px;
     }
     .f-name {
-      font-size: 13px; font-weight: 800; color: #9aa4bc; letter-spacing: -0.2px;
+      font-size: 13px; font-weight: 800; color: #c3b4b0; letter-spacing: -0.2px;
     }
-    .f-sep { width: 1px; height: 14px; background: rgba(255,255,255,0.09); }
-    .f-copy { font-size: 11.5px; color: #32394d; }
+    .f-sep { width: 1px; height: 14px; background: rgba(251,247,244,0.09); }
+    .f-copy { font-size: 11.5px; color: #705953; }
 
     .f-right {
       display: flex; align-items: center; gap: 8px;
     }
-    .f-by { font-size: 11.5px; color: #32394d; }
+    .f-by { font-size: 11.5px; color: #705953; }
     .f-credit {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 12px;
       border-radius: 8px;
-      background: rgba(99,102,241,0.07);
-      border: 1px solid rgba(99,102,241,0.2);
-      color: #a5b4fc;
+      background: rgba(233, 30, 99, 0.07);
+      border: 1px solid rgba(233, 30, 99, 0.2);
+      color: #ff8da1;
       font-size: 12px; font-weight: 600;
       font-family: 'Plus Jakarta Sans', sans-serif;
       text-decoration: none;
       transition: all .2s;
     }
-    .f-credit i { font-size: 13px; color: #d946ef; }
+    .f-credit i { font-size: 13px; color: #f06292; }
     .f-credit:hover {
-      background: rgba(99,102,241,0.13);
-      border-color: rgba(99,102,241,0.4);
+      background: rgba(233, 30, 99, 0.13);
+      border-color: rgba(233, 30, 99, 0.4);
       transform: translateY(-2px);
     }
 
@@ -338,21 +343,19 @@
       </a>
     </div>
 
-    <!-- Stats -->
+    <!-- Stats (data asli dari database) -->
     <div class="stats">
       <div class="stat">
-        <span class="stat-num">4</span>
-        <span class="stat-lbl">Kolom</span>
+        <span class="stat-num">{{ $mahasiswaCount }}</span>
+        <span class="stat-lbl">Mahasiswa</span>
       </div>
       <div class="stat">
-        <span class="stat-num">∞</span>
+        <span class="stat-num">{{ $taskCount }}</span>
         <span class="stat-lbl">Tasks</span>
       </div>
       <div class="stat">
-        <span class="stat-num">
-          <i class="ti ti-check" style="font-size:17px;color:#34d399"></i>
-        </span>
-        <span class="stat-lbl">Gratis</span>
+        <span class="stat-num">{{ $doneCount }}</span>
+        <span class="stat-lbl">Selesai</span>
       </div>
     </div>
 

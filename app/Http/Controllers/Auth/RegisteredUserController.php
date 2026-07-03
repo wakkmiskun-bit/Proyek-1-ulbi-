@@ -3,47 +3,52 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\Mahasiswa;
+use App\Services\ActivityLogger;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(): View
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'nim' => ['required', 'string', 'max:20', 'unique:'.User::class],
+            'nim' => ['required', 'string', 'max:20', 'unique:mahasiswas,nim'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:mahasiswas,email'],
+            'phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
+            'universitas' => ['required', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:2048'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'phone.regex' => 'Format nomor telepon tidak valid.',
         ]);
 
-        $user = User::create([
+        $fotoPath = null;
+        if ($request->hasFile('photo')) {
+            $fotoPath = $request->file('photo')->store('photos', 'public');
+        }
+
+        $mahasiswa = Mahasiswa::create([
             'nim' => $request->nim,
-            'name' => $request->name,
+            'nama' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'user',
+            'phone' => Mahasiswa::normalizePhone($request->phone),
+            'universitas' => $request->universitas,
+            'foto' => $fotoPath,
+            'password' => $request->password,
         ]);
 
-        event(new Registered($user));
+        event(new Registered($mahasiswa));
+        ActivityLogger::logMahasiswaRegistered($mahasiswa);
 
         return redirect()
             ->route('login')

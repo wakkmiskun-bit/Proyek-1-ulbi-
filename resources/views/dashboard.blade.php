@@ -23,22 +23,22 @@
 
     <div class="nav-stats">
       <div class="stat-chip">
-        <div class="stat-dot" style="background:#7c6af7"></div>
+        <div class="stat-dot" style="background:#e91e63"></div>
         <span>To Do</span>
         <b data-count="todo">0</b>
       </div>
       <div class="stat-chip">
-        <div class="stat-dot" style="background:#f4a13e"></div>
+        <div class="stat-dot" style="background:#d97706"></div>
         <span>Doing</span>
         <b data-count="doing">0</b>
       </div>
       <div class="stat-chip">
-        <div class="stat-dot" style="background:#e05ec8"></div>
+        <div class="stat-dot" style="background:#ec4899"></div>
         <span>Review</span>
         <b data-count="review">0</b>
       </div>
       <div class="stat-chip">
-        <div class="stat-dot" style="background:#34d399"></div>
+        <div class="stat-dot" style="background:#10b981"></div>
         <span>Done</span>
         <b data-count="done">0</b>
       </div>
@@ -61,9 +61,14 @@
         </svg>
       </div>
 
-      <button id="darkBtn" class="nav-btn" title="Toggle tema">☀️</button>
+      <button id="darkBtn" class="nav-btn" title="Toggle tema">🌙</button>
 
-      <div class="stat-chip" title="Akun aktif">
+      <div class="stat-chip user-chip" title="Akun aktif">
+        @if(auth()->user()->photo)
+          <img src="{{ asset('storage/'.auth()->user()->photo) }}" alt="" class="nav-user-photo">
+        @else
+          <span class="nav-user-fallback">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+        @endif
         <span>{{ auth()->user()->name }}</span>
         <b style="font-size:11px;opacity:.8">{{ auth()->user()->nim }}</b>
       </div>
@@ -74,6 +79,24 @@
       </form>
     </div>
   </nav>
+
+  <!-- Welcome & Deadline Alert -->
+  <div class="dashboard-hero">
+    <div class="hero-welcome">
+      <div class="hero-avatar">
+        @if(auth()->user()->photo)
+          <img src="{{ asset('storage/'.auth()->user()->photo) }}" alt="">
+        @else
+          <span>{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+        @endif
+      </div>
+      <div class="hero-text">
+        <h1>Halo, {{ auth()->user()->name }}! 👋</h1>
+        <p>NIM {{ auth()->user()->nim }} · Kelola tugasmu dengan Kanban board</p>
+      </div>
+    </div>
+    <div id="deadlineAlert" class="deadline-alert hidden"></div>
+  </div>
 
   <!-- ═══ MOBILE COL TABS ═══ -->
   <div class="mobile-col-tabs">

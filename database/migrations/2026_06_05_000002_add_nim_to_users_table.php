@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,11 +13,13 @@ return new class extends Migration
             $table->string('nim')->nullable()->after('id');
         });
 
-        User::query()->each(function (User $user) {
+        foreach (DB::table('users')->orderBy('id')->get() as $user) {
             if (empty($user->nim)) {
-                $user->update(['nim' => 'LEGACY'.$user->id]);
+                DB::table('users')->where('id', $user->id)->update([
+                    'nim' => 'LEGACY'.$user->id,
+                ]);
             }
-        });
+        }
 
         Schema::table('users', function (Blueprint $table) {
             $table->string('nim')->nullable(false)->unique()->change();

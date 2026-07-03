@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Models\User;
+use App\Models\Mahasiswa;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -31,12 +31,23 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $login = $this->string('login')->trim();
-        $user = User::query()
-            ->where('email', Str::lower($login))
+        $email = Str::lower($login);
+
+        // Check if matching Admin credentials
+        $admin = \App\Models\Admin::query()->where('email', $email)->first();
+        if ($admin && Hash::check($this->string('password'), $admin->password)) {
+            Auth::guard('admin')->login($admin, $this->boolean('remember'));
+            RateLimiter::clear($this->throttleKey());
+            return;
+        }
+
+        // Otherwise check Mahasiswa
+        $mahasiswa = Mahasiswa::query()
+            ->where('email', $email)
             ->orWhere('nim', $login)
             ->first();
 
-        if (! $user || ! Hash::check($this->string('password'), $user->password)) {
+        if (! $mahasiswa || ! Hash::check($this->string('password'), $mahasiswa->password)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -44,7 +55,7 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        Auth::login($user, $this->boolean('remember'));
+        Auth::guard('web')->login($mahasiswa, $this->boolean('remember'));
         RateLimiter::clear($this->throttleKey());
     }
 

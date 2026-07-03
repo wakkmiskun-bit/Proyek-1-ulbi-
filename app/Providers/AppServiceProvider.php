@@ -21,11 +21,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Setiap tugas hanya bisa diakses oleh pemilik akun (user_id dari session).
         Route::bind('task', function (string $value) {
-            return Task::query()
-                ->where('user_id', auth()->id())
-                ->findOrFail($value);
+            $query = Task::query()->whereKey($value);
+
+            if (auth('web')->check()) {
+                $query->where('mahasiswa_id', auth('web')->id());
+            }
+
+            return $query->firstOrFail();
         });
     }
 }

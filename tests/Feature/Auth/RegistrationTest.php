@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,12 +22,21 @@ class RegistrationTest extends TestCase
             'nim' => '1234567890',
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'phone' => '081234567890',
+            'universitas' => 'Universitas Indonesia',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
 
-        $this->assertGuest();
+        $this->assertGuest('web');
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('status');
+
+        $this->assertDatabaseHas('mahasiswas', [
+            'nim' => '1234567890',
+            'nama' => 'Test User',
+            'email' => 'test@example.com',
+            'universitas' => 'Universitas Indonesia',
+        ]);
     }
 }

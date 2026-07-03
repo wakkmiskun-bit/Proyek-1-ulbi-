@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
 {
@@ -12,22 +13,53 @@ class Task extends Model
     use HasFactory;
 
     protected $fillable = [
+        'mahasiswa_id',
         'title',
         'description',
         'status',
+        'deadline',
         'priority',
-        'due_date',
         'checklist',
         'sort_order',
     ];
 
     protected $casts = [
-        'due_date' => 'date',
+        'deadline' => 'date',
         'checklist' => 'array',
     ];
 
-    public function user(): BelongsTo
+    protected $appends = [
+        'due_date',
+    ];
+
+    public function mahasiswa(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Mahasiswa::class);
+    }
+
+    public function taskReminders(): HasMany
+    {
+        return $this->hasMany(TaskReminder::class);
+    }
+
+    /** Kompatibilitas API Kanban lama (due_date = deadline). */
+    public function getDueDateAttribute(): ?string
+    {
+        return $this->deadline?->format('Y-m-d');
+    }
+
+    public static function applyAutoComplete(array &$data): void
+    {
+        $checklist = $data['checklist'] ?? null;
+
+        if (! is_array($checklist) || count($checklist) === 0) {
+            return;
+        }
+
+        $allDone = collect($checklist)->every(fn ($item) => ! empty($item['done']));
+
+        if ($allDone) {
+            $data['status'] = 'done';
+        }
     }
 }

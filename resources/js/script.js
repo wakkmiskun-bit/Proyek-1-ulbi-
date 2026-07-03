@@ -41,6 +41,41 @@ const cardStore = new Map(); // el → data object
 let activeCard = null;
 let activePriority = 'medium';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const boardConfig = window.TASKMATE_BOARD || {};
+const adminUserId = boardConfig.adminUserId || null;
+
+function taskListUrl() {
+  return adminUserId ? `/admin/mahasiswas/${adminUserId}` : '/tasks';
+}
+
+function taskCreateUrl() {
+  return adminUserId ? `/admin/mahasiswas/${adminUserId}/tasks` : '/tasks';
+}
+
+function taskItemUrl(id) {
+  return adminUserId ? `/admin/tasks/${id}` : `/tasks/${id}`;
+}
+
+function isChecklistComplete(checklist) {
+  return Array.isArray(checklist) && checklist.length > 0 && checklist.every(c => c.done);
+}
+
+async function maybeAutoCompleteCard(card) {
+  const data = cardStore.get(card);
+  if (!data?.id || data.col === 'done' || !isChecklistComplete(data.checklist)) return;
+
+  try {
+    await apiFetch(taskItemUrl(data.id), {
+      method: 'PUT',
+      body: JSON.stringify({ ...taskPayload(data), status: 'done' }),
+    });
+    document.getElementById('cards-done').appendChild(card);
+    data.col = 'done';
+    renderCard(card);
+    updateStats();
+    toast('Checklist selesai — tugas otomatis pindah ke Done', '✅');
+  } catch (_) {}
+}
 
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
@@ -151,7 +186,7 @@ document.querySelectorAll('.add-btn').forEach(btn => {
 //  CREATE CARD
 // ═══════════════════════════════════════════
 async function createCard(col, title, priority='medium', due='', checklist=[]) {
-  const saved = await apiFetch('/tasks', {
+  const saved = await apiFetch(taskCreateUrl(), {
     method: 'POST',
     body: JSON.stringify({
       ...taskPayload({ title, desc: '', priority, due, checklist, col }),
@@ -184,13 +219,60 @@ function mountCard(task) {
   return card;
 }
 
+// ═══════════════════════════════════════════
+//  LOAD USER TASKS & CHECK REMINDERS
+// ═══════════════════════════════════════════
 async function loadTasks() {
-  const tasks = await apiFetch('/tasks');
+  let tasks;
+  if (adminUserId) {
+    const userData = await apiFetch(taskListUrl());
+    tasks = userData.tasks || [];
+  } else {
+    tasks = await apiFetch('/tasks');
+  }
   COLS.forEach(col => {
     document.getElementById('cards-'+col).innerHTML = '';
   });
   cardStore.clear();
   tasks.forEach(task => mountCard(task));
+
+  // Logika Pengecekan Reminder Otomatis Setelah Memuat Tugas
+  if (!adminUserId) {
+  try {
+    const reminderData = await apiFetch('/tasks-reminders');
+    const alertEl = document.getElementById('deadlineAlert');
+    const s = reminderData.summary;
+
+    if (alertEl) {
+      if (s.total_overdue > 0) {
+        alertEl.className = 'deadline-alert danger';
+        alertEl.innerHTML = `🔴 <strong>${s.total_overdue} tugas sudah lewat deadline!</strong> Segera kerjakan ya.`;
+      } else if (s.total_h2 > 0) {
+        alertEl.className = 'deadline-alert warning';
+        alertEl.innerHTML = `⏰ <strong>${s.total_h2} tugas deadline H-2!</strong> Jangan lupa dikerjakan — pengingat WhatsApp juga akan dikirim.`;
+      } else if (s.total_h5 > 0) {
+        alertEl.className = 'deadline-alert info';
+        alertEl.innerHTML = `📅 <strong>${s.total_h5} tugas deadline H-5.</strong> Masih ada waktu, yuk mulai dikerjakan!`;
+      } else if (s.total_upcoming > 0) {
+        alertEl.className = 'deadline-alert warning';
+        alertEl.innerHTML = `🟡 Ada ${s.total_upcoming} tugas mendekati deadline.`;
+      } else {
+        alertEl.className = 'deadline-alert hidden';
+        alertEl.innerHTML = '';
+      }
+    }
+
+    if (s.total_overdue > 0) {
+      toast(`Kamu memiliki ${s.total_overdue} tugas yang TELAT!`, '🔴');
+    } else if (s.total_h2 > 0) {
+      toast(`Ingat! ${s.total_h2} tugas deadline dalam 2 hari — jangan lupa dikerjakan!`, '⏰');
+    } else if (s.total_h5 > 0) {
+      toast(`${s.total_h5} tugas deadline dalam 5 hari — yuk mulai dikerjakan!`, '📅');
+    }
+  } catch (error) {
+    console.error('Gagal mengambil data pengingat tugas:', error);
+  }
+  }
 }
 
 function renderCard(card) {
@@ -249,7 +331,7 @@ function renderCard(card) {
     const data = cardStore.get(card);
     if (!data?.id) return;
     try {
-      await apiFetch(`/tasks/${data.id}`, { method: 'DELETE' });
+      await apiFetch(taskItemUrl(data.id), { method: 'DELETE' });
       card.style.transition = 'opacity .25s, transform .25s';
       card.style.opacity = '0';
       card.style.transform = 'scale(.9)';
@@ -267,7 +349,7 @@ async function moveCard(card, toCol) {
   if (fromCol === toCol || !data?.id) return;
 
   try {
-    await apiFetch(`/tasks/${data.id}`, {
+    await apiFetch(taskItemUrl(data.id), {
       method: 'PUT',
       body: JSON.stringify({ ...taskPayload(data), status: toCol }),
     });
@@ -305,7 +387,7 @@ COLS.forEach(col => {
         const prevCol = data.col;
         data.col = newCol;
         try {
-          await apiFetch(`/tasks/${data.id}`, {
+          await apiFetch(taskItemUrl(data.id), {
             method: 'PUT',
             body: JSON.stringify({ ...taskPayload(data), status: newCol }),
           });
@@ -380,11 +462,12 @@ document.getElementById('modalSaveBtn').onclick = async () => {
   data.desc = document.getElementById('mDesc').value.trim();
   data.priority = activePriority;
   data.due = document.getElementById('mDue').value;
+  if (isChecklistComplete(data.checklist)) data.col = 'done';
 
   if (!data.id) return;
 
   try {
-    await apiFetch(`/tasks/${data.id}`, {
+    await apiFetch(taskItemUrl(data.id), {
       method: 'PUT',
       body: JSON.stringify(taskPayload(data)),
     });
@@ -409,15 +492,23 @@ function renderChecklist(checklist) {
       <span>${esc(item.text)}</span>
       <button class="cl-del">×</button>
     `;
-    row.querySelector('input').onchange = e => {
+    row.querySelector('input').onchange = async e => {
       item.done = e.target.checked;
       row.classList.toggle('done', item.done);
-      if (activeCard) { renderCard(activeCard); updateStats(); }
+      if (activeCard) {
+        renderCard(activeCard);
+        updateStats();
+        await maybeAutoCompleteCard(activeCard);
+      }
     };
-    row.querySelector('.cl-del').onclick = () => {
+    row.querySelector('.cl-del').onclick = async () => {
       checklist.splice(i, 1);
       renderChecklist(checklist);
-      if (activeCard) { renderCard(activeCard); updateStats(); }
+      if (activeCard) {
+        renderCard(activeCard);
+        updateStats();
+        await maybeAutoCompleteCard(activeCard);
+      }
     };
     list.appendChild(row);
   });
@@ -451,37 +542,46 @@ document.getElementById('searchInput').oninput = function() {
 };
 
 // ═══════════════════════════════════════════
-//  DARK MODE (already dark by default, toggle to light)
+//  THEME (default: light / professional)
 // ═══════════════════════════════════════════
-let isLight = false;
+let isLight = true;
+
+function applyTheme() {
+  const root = document.documentElement;
+  const btn = document.getElementById('darkBtn');
+  if (isLight) {
+    root.style.setProperty('--c0','#fbf7f4');
+    root.style.setProperty('--c1','#ffffff');
+    root.style.setProperty('--c2','#faf4f0');
+    root.style.setProperty('--c3','#f2e5dc');
+    root.style.setProperty('--c4','#e8d6cb');
+    root.style.setProperty('--border','rgba(61, 43, 39, 0.08)');
+    root.style.setProperty('--border2','rgba(61, 43, 39, 0.12)');
+    root.style.setProperty('--text','#3d2b27');
+    root.style.setProperty('--text2','#705953');
+    root.style.setProperty('--text3','#a8938e');
+    if (btn) btn.textContent = '🌙';
+  } else {
+    root.style.setProperty('--c0','#1c1412');
+    root.style.setProperty('--c1','#251b18');
+    root.style.setProperty('--c2','#2f2320');
+    root.style.setProperty('--c3','#3a2b27');
+    root.style.setProperty('--c4','#463531');
+    root.style.setProperty('--border','rgba(251, 247, 244, 0.08)');
+    root.style.setProperty('--border2','rgba(251, 247, 244, 0.12)');
+    root.style.setProperty('--text','#fbf7f4');
+    root.style.setProperty('--text2','#c3b4b0');
+    root.style.setProperty('--text3','#8a7672');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+
 document.getElementById('darkBtn').onclick = () => {
   isLight = !isLight;
-  if (isLight) {
-    document.documentElement.style.setProperty('--c0','#f1f5fb');
-    document.documentElement.style.setProperty('--c1','#ffffff');
-    document.documentElement.style.setProperty('--c2','#f8fafc');
-    document.documentElement.style.setProperty('--c3','#e8edf4');
-    document.documentElement.style.setProperty('--c4','#d1d9e6');
-    document.documentElement.style.setProperty('--border','rgba(0,0,0,0.08)');
-    document.documentElement.style.setProperty('--border2','rgba(0,0,0,0.14)');
-    document.documentElement.style.setProperty('--text','#111827');
-    document.documentElement.style.setProperty('--text2','#4b5563');
-    document.documentElement.style.setProperty('--text3','#9ca3af');
-    document.getElementById('darkBtn').textContent = '🌙';
-  } else {
-    document.documentElement.style.setProperty('--c0','#0a0e1a');
-    document.documentElement.style.setProperty('--c1','#111827');
-    document.documentElement.style.setProperty('--c2','#1c2333');
-    document.documentElement.style.setProperty('--c3','#242d3d');
-    document.documentElement.style.setProperty('--c4','#2e3a4e');
-    document.documentElement.style.setProperty('--border','rgba(255,255,255,0.07)');
-    document.documentElement.style.setProperty('--border2','rgba(255,255,255,0.12)');
-    document.documentElement.style.setProperty('--text','#e8edf5');
-    document.documentElement.style.setProperty('--text2','#8b97b0');
-    document.documentElement.style.setProperty('--text3','#5a6880');
-    document.getElementById('darkBtn').textContent = '☀️';
-  }
+  applyTheme();
 };
+
+applyTheme();
 
 // ═══════════════════════════════════════════
 //  MOBILE NAV

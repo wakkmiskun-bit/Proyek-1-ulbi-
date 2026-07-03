@@ -15,7 +15,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0a0e1a 0%, #1e1b4b 50%, #2d1b69 100%);
+            background: linear-gradient(135deg, #1c1412 0%, #291c1a 50%, #362522 100%);
             color: white;
             font-family: 'Figtree', sans-serif;
             min-height: 100vh;
@@ -33,8 +33,8 @@
             opacity: 0.05;
             pointer-events: none;
         }
-        .shape-1 { width: 400px; height: 400px; top: -100px; left: -100px; background: #d946ef; animation: float 20s ease-in-out infinite; }
-        .shape-2 { width: 300px; height: 300px; bottom: -50px; right: -50px; background: #ec4899; animation: float 25s ease-in-out infinite reverse; }
+        .shape-1 { width: 400px; height: 400px; top: -100px; left: -100px; background: #e91e63; animation: float 20s ease-in-out infinite; }
+        .shape-2 { width: 300px; height: 300px; bottom: -50px; right: -50px; background: #faf6f0; animation: float 25s ease-in-out infinite reverse; }
 
         @keyframes float {
             0%, 100% { transform: translate(0, 0); }
@@ -118,7 +118,7 @@
         h1 {
             font-size: 3.8rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #d946ef 0%, #ec4899 40%, #f43f5e 100%);
+            background: linear-gradient(135deg, #fbf7f4 0%, #ff8da1 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -165,8 +165,8 @@
         .feature-item {
             padding: 1.8rem 1.5rem;
             border-radius: 16px;
-            background: rgba(168, 85, 247, 0.08);
-            border: 1px solid rgba(168, 85, 247, 0.4);
+            background: rgba(233, 30, 99, 0.08);
+            border: 1px solid rgba(233, 30, 99, 0.35);
             backdrop-filter: blur(12px);
             transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             cursor: pointer;
@@ -181,16 +181,16 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(217, 70, 239, 0.3) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(233, 30, 99, 0.3) 0%, transparent 70%);
             opacity: 0;
             transition: opacity 0.4s ease;
         }
 
         .feature-item:hover {
-            background: rgba(168, 85, 247, 0.15);
-            border-color: rgba(217, 70, 239, 0.8);
+            background: rgba(233, 30, 99, 0.15);
+            border-color: rgba(233, 30, 99, 0.8);
             transform: translateY(-8px) scale(1.05);
-            box-shadow: 0 12px 30px rgba(217, 70, 239, 0.25);
+            box-shadow: 0 12px 30px rgba(233, 30, 99, 0.25);
         }
 
         .feature-item:hover::before {
@@ -253,7 +253,7 @@
         }
 
         .btn-dashboard {
-            background: linear-gradient(135deg, #d946ef 0%, #ec4899 50%, #f43f5e 100%);
+            background: linear-gradient(135deg, #e91e63 0%, #f06292 50%, #ec407a 100%);
             color: white;
             background-size: 200% 200%;
             animation: gradientShift 3s ease infinite;
@@ -266,7 +266,7 @@
 
         .btn-dashboard:hover {
             transform: translateY(-4px) scale(1.05);
-            box-shadow: 0 15px 40px rgba(217, 70, 239, 0.5);
+            box-shadow: 0 15px 40px rgba(233, 30, 99, 0.5);
         }
 
         .btn-dashboard:active {
@@ -274,28 +274,28 @@
         }
 
         .btn-logout {
-            background: rgba(239, 68, 68, 0.15);
-            color: #fca5a5;
-            border: 2px solid rgba(239, 68, 68, 0.5);
+            background: rgba(233, 30, 99, 0.07);
+            color: #ff8da1;
+            border: 2px solid rgba(233, 30, 99, 0.3);
             transition: all 0.4s ease;
         }
 
         .btn-logout:hover {
-            background: rgba(239, 68, 68, 0.25);
-            border-color: rgba(239, 68, 68, 0.9);
+            background: rgba(233, 30, 99, 0.15);
+            border-color: rgba(233, 30, 99, 0.6);
             transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(239, 68, 68, 0.2);
+            box-shadow: 0 12px 30px rgba(233, 30, 99, 0.2);
         }
 
         .user-badge {
             display: inline-block;
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(217, 70, 239, 0.2) 100%);
-            border: 1.5px solid rgba(168, 85, 247, 0.6);
+            background: linear-gradient(135deg, rgba(233, 30, 99, 0.3) 0%, rgba(250, 246, 240, 0.1) 100%);
+            border: 1.5px solid rgba(233, 30, 99, 0.6);
             padding: 0.6rem 1.3rem;
             border-radius: 25px;
             margin-bottom: 1.5rem;
             font-size: 0.9rem;
-            color: #d8b4fe;
+            color: #ff8da1;
             font-weight: 600;
             animation: fadeInScale 1s ease-out 0.1s both;
             letter-spacing: 0.5px;

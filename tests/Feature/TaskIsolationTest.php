@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Mahasiswa;
 use App\Models\Task;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,13 +13,13 @@ class TaskIsolationTest extends TestCase
 
     public function test_user_only_sees_own_tasks(): void
     {
-        $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $owner = Mahasiswa::factory()->create();
+        $other = Mahasiswa::factory()->create();
 
-        Task::factory()->for($owner)->create(['title' => 'Tugas A']);
-        Task::factory()->for($other)->create(['title' => 'Tugas B']);
+        Task::factory()->for($owner, 'mahasiswa')->create(['title' => 'Tugas A']);
+        Task::factory()->for($other, 'mahasiswa')->create(['title' => 'Tugas B']);
 
-        $response = $this->actingAs($owner)->getJson('/tasks');
+        $response = $this->actingAs($owner, 'web')->getJson('/tasks');
 
         $response->assertOk()
             ->assertJsonCount(1)
@@ -28,22 +28,22 @@ class TaskIsolationTest extends TestCase
 
     public function test_user_cannot_update_other_users_task(): void
     {
-        $owner = User::factory()->create();
-        $intruder = User::factory()->create();
-        $task = Task::factory()->for($owner)->create();
+        $owner = Mahasiswa::factory()->create();
+        $intruder = Mahasiswa::factory()->create();
+        $task = Task::factory()->for($owner, 'mahasiswa')->create();
 
-        $this->actingAs($intruder)
+        $this->actingAs($intruder, 'web')
             ->putJson("/tasks/{$task->id}", ['title' => 'Hack'])
             ->assertNotFound();
     }
 
     public function test_user_cannot_delete_other_users_task(): void
     {
-        $owner = User::factory()->create();
-        $intruder = User::factory()->create();
-        $task = Task::factory()->for($owner)->create();
+        $owner = Mahasiswa::factory()->create();
+        $intruder = Mahasiswa::factory()->create();
+        $task = Task::factory()->for($owner, 'mahasiswa')->create();
 
-        $this->actingAs($intruder)
+        $this->actingAs($intruder, 'web')
             ->deleteJson("/tasks/{$task->id}")
             ->assertNotFound();
     }
