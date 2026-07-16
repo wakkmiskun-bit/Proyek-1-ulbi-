@@ -95,7 +95,7 @@ Route::get('/welcome', function () {
 })->middleware(['auth:web']);
 
 Route::get('/bantuan', function () {
-    $phone = env('ADMIN_WHATSAPP', '6282216151741');
+    $phone = env('ADMIN_WHATSAPP', '6285191163819');
     $phone = preg_replace('/\D/', '', $phone);
     return view('bantuan', ['adminPhone' => $phone]);
 })->name('bantuan');
