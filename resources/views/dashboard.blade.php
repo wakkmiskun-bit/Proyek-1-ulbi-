@@ -33,6 +33,24 @@
 
 <div id="app" class="visible student-app-container">
 
+  <!-- ═══ MOBILE TOP BAR ═══ -->
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" id="mobileMenuToggleBtn" title="Buka Menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="mobile-logo">
+      <div class="mobile-logo-icon">+</div>
+      <span class="mobile-logo-text">TaskMate</span>
+    </div>
+    <div class="mobile-top-right">
+      <button class="mobile-icon-btn" data-tab-trigger="notifications" title="Notifikasi"><i class="fa-solid fa-bell"></i></button>
+      <button class="mobile-icon-btn" id="mobileDarkBtn" title="Toggle Tema">🌙</button>
+    </div>
+  </div>
+
+  <!-- ═══ SIDEBAR OVERLAY ═══ -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <!-- ═══ SIDEBAR ═══ -->
   <aside class="student-sidebar">
     <div class="sidebar-logo">
@@ -221,6 +239,14 @@
 
       <!-- Warning Alert -->
       <div id="deadlineAlert" class="deadline-alert hidden" style="margin-top: 16px;"></div>
+
+      <!-- Mobile Column Selector Tabs -->
+      <div class="mobile-col-tabs">
+        <button class="mob-col-tab active" data-col="todo"><span>📋 To Do</span></button>
+        <button class="mob-col-tab" data-col="doing"><span>⚡ Doing</span></button>
+        <button class="mob-col-tab" data-col="review"><span>👁 Review</span></button>
+        <button class="mob-col-tab" data-col="done"><span>✅ Done</span></button>
+      </div>
 
       <!-- ═══ BOARD ═══ -->
       <div class="board-wrap">
@@ -466,6 +492,30 @@
 
   <!-- ═══ TOAST ═══ -->
   <div id="toast-wrap"></div>
+
+  <!-- ═══ MOBILE BOTTOM NAV ═══ -->
+  <div class="mobile-bottom-nav" id="mobileNav">
+    <button class="mob-nav-tab active" data-tab="dashboard">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </button>
+    <button class="mob-nav-tab" data-tab="tasks">
+      <i class="fa-solid fa-list-check"></i>
+      <span>Tugas</span>
+    </button>
+    <button class="mob-nav-tab" data-tab="calendar">
+      <i class="fa-solid fa-calendar-days"></i>
+      <span>Kalender</span>
+    </button>
+    <button class="mob-nav-tab" data-tab="notifications">
+      <i class="fa-solid fa-bell"></i>
+      <span>Notif</span>
+    </button>
+    <button class="mob-nav-tab" data-tab="settings">
+      <i class="fa-solid fa-user-gear"></i>
+      <span>Pengaturan</span>
+    </button>
+  </div>
 
 </div>
 

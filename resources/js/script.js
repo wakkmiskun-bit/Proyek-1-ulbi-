@@ -654,6 +654,7 @@ let isLight = true;
 function applyTheme() {
   const root = document.documentElement;
   const btn = document.getElementById('darkBtn');
+  const mobBtn = document.getElementById('mobileDarkBtn');
   if (isLight) {
     root.style.setProperty('--c0','#f8fafc');
     root.style.setProperty('--c1','#ffffff');
@@ -666,6 +667,7 @@ function applyTheme() {
     root.style.setProperty('--text2','#475569');
     root.style.setProperty('--text3','#94a3b8');
     if (btn) btn.textContent = '🌙';
+    if (mobBtn) mobBtn.textContent = '🌙';
   } else {
     root.style.setProperty('--c0','#121212');
     root.style.setProperty('--c1','#1e1e1e');
@@ -678,13 +680,20 @@ function applyTheme() {
     root.style.setProperty('--text2','#a1a1a6');
     root.style.setProperty('--text3','#86868b');
     if (btn) btn.textContent = '☀️';
+    if (mobBtn) mobBtn.textContent = '☀️';
   }
 }
 
-document.getElementById('darkBtn').onclick = () => {
+const toggleTheme = () => {
   isLight = !isLight;
   applyTheme();
 };
+
+const darkBtn = document.getElementById('darkBtn');
+if (darkBtn) darkBtn.onclick = toggleTheme;
+
+const mobileDarkBtn = document.getElementById('mobileDarkBtn');
+if (mobileDarkBtn) mobileDarkBtn.onclick = toggleTheme;
 
 applyTheme();
 
@@ -702,9 +711,20 @@ document.querySelectorAll('.sidebar-menu .menu-item').forEach(btn => {
     const targetSection = document.getElementById('tab-' + tabId);
     if (targetSection) targetSection.classList.add('active');
     
+    // Sync with mobile bottom navigation active state
+    document.querySelectorAll('.mobile-bottom-nav .mob-nav-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabId);
+    });
+    
     if (tabId === 'calendar') {
       renderCalendar();
     }
+    
+    // Close sidebar drawer if open on mobile
+    const sidebar = document.querySelector('.student-sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
   };
 });
 
@@ -718,15 +738,47 @@ document.querySelector('[data-tab-trigger="notifications"]')?.addEventListener('
 // ═══════════════════════════════════════════
 function switchMobileCol(col) {
   document.querySelectorAll('.list').forEach(l => l.classList.remove('mobile-active'));
-  document.querySelector(`.list[data-col="${col}"]`).classList.add('mobile-active');
-  document.querySelectorAll('.mob-nav-tab, .mob-col-tab').forEach(b => {
+  const targetCol = document.querySelector(`.list[data-col="${col}"]`);
+  if (targetCol) targetCol.classList.add('mobile-active');
+  document.querySelectorAll('.mob-col-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.col === col);
   });
 }
 
-document.querySelectorAll('.mob-nav-tab, .mob-col-tab').forEach(btn => {
+document.querySelectorAll('.mob-col-tab').forEach(btn => {
   btn.onclick = () => switchMobileCol(btn.dataset.col);
 });
+
+// Initialize mobile column view
+switchMobileCol('todo');
+
+// Mobile bottom nav click handler to switch main tabs
+document.querySelectorAll('.mobile-bottom-nav .mob-nav-tab').forEach(btn => {
+  btn.onclick = () => {
+    const tabId = btn.dataset.tab;
+    const sidebarBtn = document.querySelector(`.sidebar-menu .menu-item[data-tab="${tabId}"]`);
+    if (sidebarBtn) sidebarBtn.click();
+  };
+});
+
+// ═══════════════════════════════════════════
+//  MOBILE SIDEBAR DRAWER TOGGLE
+// ═══════════════════════════════════════════
+const mobileMenuToggleBtn = document.getElementById('mobileMenuToggleBtn');
+const studentSidebar = document.querySelector('.student-sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+if (mobileMenuToggleBtn && studentSidebar && sidebarOverlay) {
+  mobileMenuToggleBtn.onclick = () => {
+    studentSidebar.classList.toggle('open');
+    sidebarOverlay.classList.toggle('open');
+  };
+  
+  sidebarOverlay.onclick = () => {
+    studentSidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('open');
+  };
+}
 
 // ═══════════════════════════════════════════
 //  STATS & PROGRESS RING UPDATING
