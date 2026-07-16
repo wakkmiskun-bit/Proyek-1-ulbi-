@@ -44,6 +44,46 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
 const boardConfig = window.TASKMATE_BOARD || {};
 const adminUserId = boardConfig.adminUserId || null;
 
+function toast(msg, icon = 'ℹ️') {
+  const wrap = document.getElementById('toast-wrap');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+  }, 10);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-20px)';
+    setTimeout(() => el.remove(), 300);
+  }, 3500);
+}
+
+function getBaseUrl() {
+  const meta = document.querySelector('meta[name="base-url"]');
+  if (meta) {
+    try {
+      const url = new URL(meta.content);
+      return url.pathname.replace(/\/$/, '');
+    } catch (_) {
+      return meta.content.replace(/\/$/, '');
+    }
+  }
+  return '';
+}
+
+function getFullUrl(url) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const base = getBaseUrl();
+  const path = url.startsWith('/') ? url : '/' + url;
+  return base + path;
+}
+
 function taskListUrl() {
   return adminUserId ? `/admin/mahasiswas/${adminUserId}` : '/tasks';
 }
@@ -78,7 +118,8 @@ async function maybeAutoCompleteCard(card) {
 }
 
 async function apiFetch(url, options = {}) {
-  const res = await fetch(url, {
+  const fullUrl = getFullUrl(url);
+  const res = await fetch(fullUrl, {
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
@@ -158,15 +199,15 @@ document.querySelectorAll('.add-btn').forEach(btn => {
       if (!title) return;
       const priority = box.querySelector('.p-opt.selected')?.dataset.p || 'medium';
       const due = box.querySelector('.ab-due').value;
-      const btn = box.querySelector('.ab-save');
-      btn.disabled = true;
+      const saveBtn = box.querySelector('.ab-save');
+      saveBtn.disabled = true;
       try {
         await createCard(col, title, priority, due);
         box.style.display = 'none';
         box.querySelector('.ab-title').value = '';
         box.querySelector('.ab-due').value = '';
       } finally {
-        btn.disabled = false;
+        saveBtn.disabled = false;
       }
     };
 
@@ -186,15 +227,17 @@ document.querySelectorAll('.add-btn').forEach(btn => {
 //  CREATE CARD
 // ═══════════════════════════════════════════
 async function createCard(col, title, priority='medium', due='', checklist=[]) {
+  const targetCol = 'todo';
   const saved = await apiFetch(taskCreateUrl(), {
     method: 'POST',
     body: JSON.stringify({
-      ...taskPayload({ title, desc: '', priority, due, checklist, col }),
-      status: col,
+      ...taskPayload({ title, desc: '', priority, due, checklist, col: targetCol }),
+      status: targetCol,
     }),
   });
   const card = mountCard(saved);
-  toast(`Card ditambahkan ke ${colLabel(col)}`, '✅');
+  updateStats();
+  toast(`Card ditambahkan ke ${colLabel(targetCol)}`, '✅');
   return card;
 }
 
@@ -214,8 +257,9 @@ function mountCard(task) {
   };
   cardStore.set(card, data);
   renderCard(card);
-  document.getElementById('cards-'+col).appendChild(card);
-  updateStats();
+  const colEl = document.getElementById('cards-'+col);
+  if (colEl) colEl.appendChild(card);
+  updateStats(true);
   return card;
 }
 
@@ -231,48 +275,97 @@ async function loadTasks() {
     tasks = await apiFetch('/tasks');
   }
   COLS.forEach(col => {
-    document.getElementById('cards-'+col).innerHTML = '';
+    const el = document.getElementById('cards-'+col);
+    if (el) el.innerHTML = '';
   });
   cardStore.clear();
   tasks.forEach(task => mountCard(task));
 
+  // Render home elements
+  renderDashboardDeadlineList();
+  renderCalendar();
+  renderNotificationsFeed();
+
   // Logika Pengecekan Reminder Otomatis Setelah Memuat Tugas
   if (!adminUserId) {
-  try {
-    const reminderData = await apiFetch('/tasks-reminders');
-    const alertEl = document.getElementById('deadlineAlert');
-    const s = reminderData.summary;
+    try {
+      const reminderData = await apiFetch('/tasks-reminders');
+      const alertEl = document.getElementById('deadlineAlert');
+      const s = reminderData.summary;
 
-    if (alertEl) {
-      if (s.total_overdue > 0) {
-        alertEl.className = 'deadline-alert danger';
-        alertEl.innerHTML = `🔴 <strong>${s.total_overdue} tugas sudah lewat deadline!</strong> Segera kerjakan ya.`;
-      } else if (s.total_h2 > 0) {
-        alertEl.className = 'deadline-alert warning';
-        alertEl.innerHTML = `⏰ <strong>${s.total_h2} tugas deadline H-2!</strong> Jangan lupa dikerjakan — pengingat WhatsApp juga akan dikirim.`;
-      } else if (s.total_h5 > 0) {
-        alertEl.className = 'deadline-alert info';
-        alertEl.innerHTML = `📅 <strong>${s.total_h5} tugas deadline H-5.</strong> Masih ada waktu, yuk mulai dikerjakan!`;
-      } else if (s.total_upcoming > 0) {
-        alertEl.className = 'deadline-alert warning';
-        alertEl.innerHTML = `🟡 Ada ${s.total_upcoming} tugas mendekati deadline.`;
-      } else {
-        alertEl.className = 'deadline-alert hidden';
-        alertEl.innerHTML = '';
+      if (alertEl) {
+        if (s.total_overdue > 0) {
+          alertEl.className = 'deadline-alert danger';
+          alertEl.innerHTML = `🔴 <strong>${s.total_overdue} tugas sudah lewat deadline!</strong> Segera kerjakan ya.`;
+        } else if (s.total_h2 > 0) {
+          alertEl.className = 'deadline-alert warning';
+          alertEl.innerHTML = `⏰ <strong>${s.total_h2} tugas deadline H-2!</strong> Jangan lupa dikerjakan — pengingat WhatsApp juga akan dikirim.`;
+        } else if (s.total_h5 > 0) {
+          alertEl.className = 'deadline-alert info';
+          alertEl.innerHTML = `📅 <strong>${s.total_h5} tugas deadline H-5.</strong> Masih ada waktu, yuk mulai dikerjakan!`;
+        } else if (s.total_upcoming > 0) {
+          alertEl.className = 'deadline-alert warning';
+          alertEl.innerHTML = `🟡 Ada ${s.total_upcoming} tugas mendekati deadline.`;
+        } else {
+          alertEl.className = 'deadline-alert hidden';
+          alertEl.innerHTML = '';
+        }
       }
-    }
 
-    if (s.total_overdue > 0) {
-      toast(`Kamu memiliki ${s.total_overdue} tugas yang TELAT!`, '🔴');
-    } else if (s.total_h2 > 0) {
-      toast(`Ingat! ${s.total_h2} tugas deadline dalam 2 hari — jangan lupa dikerjakan!`, '⏰');
-    } else if (s.total_h5 > 0) {
-      toast(`${s.total_h5} tugas deadline dalam 5 hari — yuk mulai dikerjakan!`, '📅');
+      if (s.total_overdue > 0) {
+        toast(`Kamu memiliki ${s.total_overdue} tugas yang TELAT!`, '🔴');
+      } else if (s.total_h2 > 0) {
+        toast(`Ingat! ${s.total_h2} tugas deadline dalam 2 hari — jangan lupa dikerjakan!`, '⏰');
+      } else if (s.total_h5 > 0) {
+        toast(`${s.total_h5} tugas deadline dalam 5 hari — yuk mulai dikerjakan!`, '📅');
+      }
+    } catch (error) {
+      console.error('Gagal mengambil data pengingat tugas:', error);
     }
-  } catch (error) {
-    console.error('Gagal mengambil data pengingat tugas:', error);
   }
+}
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function colLabel(col) {
+  return { todo:'To Do', doing:'Doing', review:'Review', done:'Done' }[col] || col;
+}
+function moveEmoji(col) {
+  return { todo:'📋', doing:'⚡', review:'👁', done:'✅' }[col] || '↗';
+}
+function priorityLabel(p) {
+  return { high:'🔴 Tinggi', medium:'🟡 Sedang', low:'🟢 Rendah' }[p] || p;
+}
+function buildTrail(curCol) {
+  return COLS.map(col => {
+    const idx = COLS.indexOf(col);
+    const curIdx = COLS.indexOf(curCol);
+    const isActive = idx <= curIdx;
+    return `<div class="trail-dot ${col} ${isActive?'active':''}"></div>`;
+  }).join('');
+}
+
+function dueBadge(due) {
+  if (!due) return '';
+  const d = new Date(due);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const dueDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((dueDay - today) / 86400000);
+  
+  let extraClass = '';
+  if (diff < 0) {
+    extraClass = ' overdue';
+  } else if (diff === 0) {
+    extraClass = ' today';
   }
+  
+  const formatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  return `<div class="card-due${extraClass}"><i class="fa-regular fa-calendar" style="font-size:10px"></i> ${formatted}</div>`;
 }
 
 function renderCard(card) {
@@ -373,36 +466,48 @@ async function moveCard(card, toCol) {
 }
 
 // ═══════════════════════════════════════════
-//  SORTABLE
+//  SORTABLE (WITH REFERENCE ERROR PROTECTION)
 // ═══════════════════════════════════════════
-COLS.forEach(col => {
-  new Sortable(document.getElementById('cards-'+col), {
-    group: 'shared', animation: 180,
-    ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
-    async onEnd(evt) {
-      const card = evt.item;
-      const newCol = card.closest('.list').dataset.col;
-      const data = cardStore.get(card);
-      if (data && data.col !== newCol && data.id) {
-        const prevCol = data.col;
-        data.col = newCol;
-        try {
-          await apiFetch(taskItemUrl(data.id), {
-            method: 'PUT',
-            body: JSON.stringify({ ...taskPayload(data), status: newCol }),
-          });
-          renderCard(card);
-          toast(`Dipindahkan ke ${colLabel(newCol)}`, moveEmoji(newCol));
-        } catch (_) {
-          data.col = prevCol;
-          document.getElementById('cards-'+prevCol).appendChild(card);
-          renderCard(card);
+function initSortable() {
+  if (typeof Sortable === 'undefined') return;
+  COLS.forEach(col => {
+    const el = document.getElementById('cards-'+col);
+    if (!el) return;
+    new Sortable(el, {
+      group: 'shared', animation: 180,
+      ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+      async onEnd(evt) {
+        const card = evt.item;
+        const newCol = card.closest('.list').dataset.col;
+        const data = cardStore.get(card);
+        if (data && data.col !== newCol && data.id) {
+          const prevCol = data.col;
+          data.col = newCol;
+          try {
+            await apiFetch(taskItemUrl(data.id), {
+              method: 'PUT',
+              body: JSON.stringify({ ...taskPayload(data), status: newCol }),
+            });
+            renderCard(card);
+            toast(`Dipindahkan ke ${colLabel(newCol)}`, moveEmoji(newCol));
+          } catch (_) {
+            data.col = prevCol;
+            document.getElementById('cards-'+prevCol).appendChild(card);
+            renderCard(card);
+          }
         }
+        updateStats();
       }
-      updateStats();
-    }
+    });
   });
-});
+}
+
+// Coba jalankan langsung atau tunggu load window
+if (typeof Sortable !== 'undefined') {
+  initSortable();
+} else {
+  window.addEventListener('load', initSortable);
+}
 
 // ═══════════════════════════════════════════
 //  MODAL
@@ -550,28 +655,28 @@ function applyTheme() {
   const root = document.documentElement;
   const btn = document.getElementById('darkBtn');
   if (isLight) {
-    root.style.setProperty('--c0','#fbf7f4');
+    root.style.setProperty('--c0','#f8fafc');
     root.style.setProperty('--c1','#ffffff');
-    root.style.setProperty('--c2','#faf4f0');
-    root.style.setProperty('--c3','#f2e5dc');
-    root.style.setProperty('--c4','#e8d6cb');
-    root.style.setProperty('--border','rgba(61, 43, 39, 0.08)');
-    root.style.setProperty('--border2','rgba(61, 43, 39, 0.12)');
-    root.style.setProperty('--text','#3d2b27');
-    root.style.setProperty('--text2','#705953');
-    root.style.setProperty('--text3','#a8938e');
+    root.style.setProperty('--c2','#f1f5f9');
+    root.style.setProperty('--c3','#e2e8f0');
+    root.style.setProperty('--c4','#cbd5e1');
+    root.style.setProperty('--border','rgba(0, 0, 0, 0.06)');
+    root.style.setProperty('--border2','rgba(0, 0, 0, 0.1)');
+    root.style.setProperty('--text','#0f172a');
+    root.style.setProperty('--text2','#475569');
+    root.style.setProperty('--text3','#94a3b8');
     if (btn) btn.textContent = '🌙';
   } else {
-    root.style.setProperty('--c0','#1c1412');
-    root.style.setProperty('--c1','#251b18');
-    root.style.setProperty('--c2','#2f2320');
-    root.style.setProperty('--c3','#3a2b27');
-    root.style.setProperty('--c4','#463531');
-    root.style.setProperty('--border','rgba(251, 247, 244, 0.08)');
-    root.style.setProperty('--border2','rgba(251, 247, 244, 0.12)');
-    root.style.setProperty('--text','#fbf7f4');
-    root.style.setProperty('--text2','#c3b4b0');
-    root.style.setProperty('--text3','#8a7672');
+    root.style.setProperty('--c0','#121212');
+    root.style.setProperty('--c1','#1e1e1e');
+    root.style.setProperty('--c2','#2d2d2d');
+    root.style.setProperty('--c3','#3d3d3d');
+    root.style.setProperty('--c4','#4d4d4d');
+    root.style.setProperty('--border','rgba(255, 255, 255, 0.08)');
+    root.style.setProperty('--border2','rgba(255, 255, 255, 0.12)');
+    root.style.setProperty('--text','#f5f5f7');
+    root.style.setProperty('--text2','#a1a1a6');
+    root.style.setProperty('--text3','#86868b');
     if (btn) btn.textContent = '☀️';
   }
 }
@@ -583,8 +688,33 @@ document.getElementById('darkBtn').onclick = () => {
 
 applyTheme();
 
+
 // ═══════════════════════════════════════════
-//  MOBILE NAV
+//  STUDENT SIDEBAR TAB SWITCHING
+// ═══════════════════════════════════════════
+document.querySelectorAll('.sidebar-menu .menu-item').forEach(btn => {
+  btn.onclick = () => {
+    const tabId = btn.dataset.tab;
+    document.querySelectorAll('.sidebar-menu .menu-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    document.querySelectorAll('.student-tab-section').forEach(sec => sec.classList.remove('active'));
+    const targetSection = document.getElementById('tab-' + tabId);
+    if (targetSection) targetSection.classList.add('active');
+    
+    if (tabId === 'calendar') {
+      renderCalendar();
+    }
+  };
+});
+
+document.querySelector('[data-tab-trigger="notifications"]')?.addEventListener('click', () => {
+  const menuBtn = document.querySelector('.sidebar-menu .menu-item[data-tab="notifications"]');
+  if (menuBtn) menuBtn.click();
+});
+
+// ═══════════════════════════════════════════
+//  MOBILE NAV COMPATIBILITY
 // ═══════════════════════════════════════════
 function switchMobileCol(col) {
   document.querySelectorAll('.list').forEach(l => l.classList.remove('mobile-active'));
@@ -599,81 +729,296 @@ document.querySelectorAll('.mob-nav-tab, .mob-col-tab').forEach(btn => {
 });
 
 // ═══════════════════════════════════════════
-//  STATS & RING
+//  STATS & PROGRESS RING UPDATING
 // ═══════════════════════════════════════════
-function updateStats() {
-  let counts = { todo:0, doing:0, review:0, done:0 };
+function updateStats(skipWidgets = false) {
+  let counts = { todo: 0, doing: 0, review: 0, done: 0 };
   cardStore.forEach((data, card) => {
     if (card.isConnected) {
       const col = card.closest('.list')?.dataset.col;
       if (col) counts[col]++;
     }
   });
+
   COLS.forEach(col => {
-    document.querySelector(`[data-count="${col}"]`).textContent = counts[col];
+    // 1. Column header count
+    const listCountEl = document.querySelector(`.list[data-col="${col}"] .col-count`);
+    if (listCountEl) listCountEl.textContent = counts[col];
+    
+    // 2. Navbar stats (admin mode)
+    const navCountEl = document.querySelector(`[data-count="${col}"]`);
+    if (navCountEl) navCountEl.textContent = counts[col];
+    
+    // 3. Stat chips (student mode)
     const s = document.getElementById('s-'+col);
     if (s) s.textContent = counts[col];
   });
-  const total = Object.values(counts).reduce((a,b)=>a+b, 0);
-  const donePct = total ? Math.round(counts.done / total * 100) : 0;
-  const circ = 62.8;
-  document.getElementById('ringFill').style.strokeDashoffset = circ - (circ * donePct / 100);
-  document.getElementById('ringPct').textContent = donePct + '%';
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const activeCount = counts.todo + counts.doing + counts.review;
+  const doneCount = counts.done;
+  const donePct = total ? Math.round(doneCount / total * 100) : 0;
+
+  // Mini ring compat
+  const ringFill = document.getElementById('ringFill');
+  if (ringFill) {
+    const circ = 62.8;
+    ringFill.style.strokeDashoffset = circ - (circ * donePct / 100);
+  }
+  const ringPct = document.getElementById('ringPct');
+  if (ringPct) ringPct.textContent = donePct + '%';
+
+  // Dashboard Home stats
+  const statActiveVal = document.getElementById('statActiveVal');
+  if (statActiveVal) statActiveVal.textContent = activeCount;
+
+  const statCompletedVal = document.getElementById('statCompletedVal');
+  if (statCompletedVal) statCompletedVal.textContent = doneCount;
+
+  const statDoneTotalText = document.getElementById('statDoneTotalText');
+  if (statDoneTotalText) statDoneTotalText.textContent = `${doneCount} / ${total}`;
+
+  const progressPctVal = document.getElementById('progressPctVal');
+  if (progressPctVal) progressPctVal.textContent = `${donePct}%`;
+
+  const progressPctRing = document.getElementById('progressPctRing');
+  if (progressPctRing) {
+    const circ = 88;
+    progressPctRing.style.strokeDashoffset = circ - (circ * donePct / 100);
+  }
+
+  // Refresh home page elements dynamically
+  if (!skipWidgets) {
+    renderDashboardDeadlineList();
+    renderCalendar();
+    renderNotificationsFeed();
+  }
 }
 
 // ═══════════════════════════════════════════
-//  TOAST
+//  DASHBOARD HOME DYNAMIC WIDGETS
 // ═══════════════════════════════════════════
-function toast(msg, icon='ℹ️') {
-  const wrap = document.getElementById('toast-wrap');
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.innerHTML = `<span class="toast-icon">${icon}</span><span>${msg}</span>`;
-  wrap.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('out');
-    setTimeout(() => el.remove(), 300);
-  }, 2800);
-}
+function renderDashboardDeadlineList() {
+  const listEl = document.getElementById('dashboardDeadlineList');
+  if (!listEl) return;
 
-// ═══════════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════════
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function colLabel(col) {
-  return { todo:'To Do', doing:'Doing', review:'Review', done:'Done' }[col] || col;
-}
-function moveEmoji(col) {
-  return { todo:'📋', doing:'⚡', review:'👁', done:'✅' }[col] || '↗';
-}
-function priorityLabel(p) {
-  return { high:'🔴 Tinggi', medium:'🟡 Sedang', low:'🟢 Rendah' }[p] || p;
-}
-function buildTrail(curCol) {
-  return COLS.map(col => {
-    const idx = COLS.indexOf(col);
-    const curIdx = COLS.indexOf(curCol);
-    const isActive = idx <= curIdx;
-    return `<div class="trail-dot ${col} ${isActive?'active':''}"></div>`;
+  const tasks = [];
+  cardStore.forEach(data => {
+    if (data.col !== 'done' && data.due) {
+      tasks.push(data);
+    }
+  });
+
+  tasks.sort((a, b) => new Date(a.due) - new Date(b.due));
+  const upcoming = tasks.slice(0, 5);
+
+  if (upcoming.length === 0) {
+    listEl.innerHTML = '<div class="empty-state-dashboard">Tidak ada tugas mendekati deadline.</div>';
+    return;
+  }
+
+  listEl.innerHTML = upcoming.map(t => {
+    const d = new Date(t.due);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const dueDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = Math.round((dueDay - today) / 86400000);
+    const badgeClass = diff <= 2 ? 'badge-danger' : 'badge-warning';
+    const badgeText = diff < 0 ? 'Terlambat ' + Math.abs(diff) + ' hari' : (diff === 0 ? 'Hari ini' : (diff === 1 ? 'Besok' : 'Sisa ' + diff + ' hari'));
+
+    return `
+      <div class="deadline-task-item" data-task-id="${t.id}" style="cursor: pointer;" onclick="openDeadlineTaskModal(${t.id}, event)">
+        <div class="task-info-left">
+          <input type="checkbox" onclick="event.stopPropagation(); quickCompleteTask(${t.id}, this)" class="task-chk">
+          <span class="task-title-text">${esc(t.title)}</span>
+        </div>
+        <div class="task-info-right">
+          <span class="task-due-text">Deadline: ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+          <span class="task-due-badge ${badgeClass}">${badgeText}</span>
+        </div>
+      </div>
+    `;
   }).join('');
 }
-function dueBadge(due) {
-  if (!due) return '';
-  const d = new Date(due); const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dueDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diff = Math.round((dueDay - today) / 86400000);
-  let cls='', txt='';
-  if (diff < 0) { cls='overdue'; txt='Terlambat '+Math.abs(diff)+' hari'; }
-  else if (diff === 0) { cls='today'; txt='Hari ini'; }
-  else if (diff === 1) { cls='today'; txt='Besok'; }
-  else { txt=d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
-  return `<div class="card-due ${cls}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${txt}</div>`;
-}
+
+window.quickCompleteTask = async function(taskId, checkbox) {
+  let foundCard = null;
+  let foundData = null;
+  cardStore.forEach((data, card) => {
+    if (data.id === Number(taskId)) {
+      foundCard = card;
+      foundData = data;
+    }
+  });
+
+  if (!foundCard || !foundData) return;
+  if (checkbox) checkbox.disabled = true;
+
+  try {
+    await apiFetch(taskItemUrl(foundData.id), {
+      method: 'PUT',
+      body: JSON.stringify({ ...taskPayload(foundData), status: 'done' }),
+    });
+
+    document.getElementById('cards-done').appendChild(foundCard);
+    foundData.col = 'done';
+    renderCard(foundCard);
+    updateStats();
+    renderDashboardDeadlineList();
+    renderCalendar();
+    renderNotificationsFeed();
+    toast('Tugas diselesaikan!', '✅');
+  } catch (error) {
+    if (checkbox) {
+      checkbox.checked = false;
+      checkbox.disabled = false;
+    }
+  }
+};
+
+window.openDeadlineTaskModal = function(taskId, event) {
+  if (event && event.target && (event.target.classList.contains('task-chk') || event.target.tagName === 'INPUT')) return;
+  
+  let foundCard = null;
+  cardStore.forEach((data, card) => {
+    if (data.id === Number(taskId)) {
+      foundCard = card;
+    }
+  });
+
+  if (foundCard) {
+    openModal(foundCard);
+  }
+};
 
 // ═══════════════════════════════════════════
-//  LOAD USER TASKS FROM DATABASE
+//  CALENDAR GENERATOR
 // ═══════════════════════════════════════════
+let calCurrentDate = new Date();
+
+function renderCalendar() {
+  const cellsEl = document.getElementById('calendarCells');
+  const titleEl = document.getElementById('calendarMonthTitle');
+  if (!cellsEl || !titleEl) return;
+
+  const year = calCurrentDate.getFullYear();
+  const month = calCurrentDate.getMonth();
+
+  const monthsStr = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  titleEl.textContent = `${monthsStr[month]} ${year}`;
+  cellsEl.innerHTML = '';
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'calendar-cell empty';
+    cellsEl.appendChild(emptyCell);
+  }
+
+  const today = new Date();
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const cell = document.createElement('div');
+    const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+    cell.className = `calendar-cell ${isToday ? 'today' : ''}`;
+
+    const tasksOnDay = [];
+    cardStore.forEach(data => {
+      if (data.due === cellDateStr) {
+        tasksOnDay.push(data);
+      }
+    });
+
+    const tasksHtml = tasksOnDay.map(t => `
+      <div class="calendar-task-tag ${t.col}" style="cursor: pointer;" onclick="openDeadlineTaskModal(${t.id}, event)" title="${esc(t.title)}">${esc(t.title)}</div>
+    `).join('');
+
+    cell.innerHTML = `
+      <span class="calendar-cell-num">${day}</span>
+      <div class="calendar-tasks-container">${tasksHtml}</div>
+    `;
+    cellsEl.appendChild(cell);
+  }
+}
+
+document.getElementById('prevMonthBtn')?.addEventListener('click', () => {
+  calCurrentDate.setMonth(calCurrentDate.getMonth() - 1);
+  renderCalendar();
+});
+document.getElementById('nextMonthBtn')?.addEventListener('click', () => {
+  calCurrentDate.setMonth(calCurrentDate.getMonth() + 1);
+  renderCalendar();
+});
+
+// ═══════════════════════════════════════════
+//  NOTIFICATIONS FEED
+// ═══════════════════════════════════════════
+function renderNotificationsFeed() {
+  const feedEl = document.getElementById('notificationsFeed');
+  if (!feedEl) return;
+
+  const notifications = [];
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  cardStore.forEach(data => {
+    if (data.col === 'done' || !data.due) return;
+
+    const d = new Date(data.due);
+    const dueDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = Math.round((dueDay - today) / 86400000);
+
+    if (diff < 0) {
+      notifications.push({
+        taskId: data.id,
+        type: 'red',
+        icon: '⚠️',
+        title: `Tugas Telat: ${data.title}`,
+        desc: `Tugas ini sudah melewati tenggat waktu selama ${Math.abs(diff)} hari! Segera selesaikan.`,
+        time: `Deadline: ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+      });
+    } else if (diff <= 2) {
+      notifications.push({
+        taskId: data.id,
+        type: 'orange',
+        icon: '⏰',
+        title: `Tenggat Sangat Dekat (H-${diff}): ${data.title}`,
+        desc: `Tugas mendekati deadline dalam ${diff} hari. Jangan lupa dikerjakan ya!`,
+        time: `Deadline: ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}`
+      });
+    } else if (diff <= 5) {
+      notifications.push({
+        taskId: data.id,
+        type: 'blue',
+        icon: '📅',
+        title: `Tenggat Mendekati (H-${diff}): ${data.title}`,
+        desc: `Tugas ini memiliki sisa waktu ${diff} hari untuk diselesaikan.`,
+        time: `Deadline: ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}`
+      });
+    }
+  });
+
+  if (notifications.length === 0) {
+    feedEl.innerHTML = '<div class="empty-state-dashboard">Semua aman! Tidak ada peringatan tugas mendekati deadline.</div>';
+    return;
+  }
+
+  feedEl.innerHTML = notifications.map(n => `
+    <div class="feed-item" style="cursor: pointer;" onclick="openDeadlineTaskModal(${n.taskId}, event)">
+      <div class="feed-icon ${n.type}">${n.icon}</div>
+      <div class="feed-body">
+        <div class="feed-title">${esc(n.title)}</div>
+        <div class="feed-desc">${esc(n.desc)}</div>
+        <div class="feed-time"><i class="fa-regular fa-calendar" style="margin-right: 4px;"></i> ${n.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Pemicu pemuatan awal sudah dideklarasikan di bawah.
+
+// Trigger load
 loadTasks().catch(() => toast('Gagal memuat tugas dari server', '⚠️'));

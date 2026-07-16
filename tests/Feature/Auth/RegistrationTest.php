@@ -24,6 +24,7 @@ class RegistrationTest extends TestCase
             'email' => 'test@example.com',
             'phone' => '081234567890',
             'universitas' => 'Universitas Indonesia',
+            'semester' => 5,
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
@@ -37,6 +38,7 @@ class RegistrationTest extends TestCase
             'nama' => 'Test User',
             'email' => 'test@example.com',
             'universitas' => 'Universitas Indonesia',
+            'semester' => 5,
         ]);
     }
 }

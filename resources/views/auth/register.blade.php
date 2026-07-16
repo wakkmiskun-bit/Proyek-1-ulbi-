@@ -93,6 +93,18 @@
                         @error('universitas') <p class="text-xs mt-1 flex items-center gap-1" style="color: #ef4444;"><i class="ti ti-alert-circle text-sm"></i> {{ $message }}</p> @enderror
                     </div>
                     <div class="form-group">
+                        <label for="semester" class="block text-xs font-bold uppercase tracking-widest mb-2" style="color: #705953;">Semester</label>
+                        <div class="relative">
+                            <i class="ti ti-hash absolute left-3.5 top-1/2 -translate-y-1/2 text-lg" style="color: #a8938e;"></i>
+                            <select id="semester" name="semester" required class="form-input w-full pl-10 pr-4 py-2.5 rounded-xl text-sm font-medium outline-none" style="background: #fffdfa; border: 1px solid rgba(61,43,39,0.15); color: #3d2b27;">
+                                @for($i = 1; $i <= 8; $i++)
+                                    <option value="{{ $i }}" {{ old('semester') == $i ? 'selected' : '' }}>Semester {{ $i }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        @error('semester') <p class="text-xs mt-1 flex items-center gap-1" style="color: #ef4444;"><i class="ti ti-alert-circle text-sm"></i> {{ $message }}</p> @enderror
+                    </div>
+                    <div class="form-group">
                         <label for="photo" class="block text-xs font-bold uppercase tracking-widest mb-2" style="color: #705953;">Foto Mahasiswa</label>
                         <input id="photo" type="file" name="photo" accept="image/*" class="form-input w-full py-2 rounded-xl text-sm" style="background: #fffdfa; border: 1px solid rgba(61,43,39,0.15); color: #3d2b27;">
                         @error('photo') <p class="text-xs mt-1 flex items-center gap-1" style="color: #ef4444;"><i class="ti ti-alert-circle text-sm"></i> {{ $message }}</p> @enderror

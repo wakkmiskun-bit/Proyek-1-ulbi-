@@ -4,62 +4,750 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="base-url" content="{{ url('/') }}">
   <meta name="admin-board-base" content="{{ url('/admin/mahasiswas') }}">
   <title>TaskMate Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   @vite(['resources/css/admin.css', 'resources/js/admin.js'])
   <style>
-    .admin-container { display: flex; height: 100vh; }
-    .admin-sidebar { 
-      width: 280px; background: linear-gradient(135deg, #e91e63, #f06292); 
-      color: #fff; padding: 24px; position: fixed; height: 100vh; overflow-y: auto; z-index: 50;
-      box-shadow: 4px 0 16px rgba(233, 30, 99, 0.2);
+    :root {
+      --bg-main: #f8fafc;
+      --bg-sidebar: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --pink-primary: #e91e63;
+      --pink-hover: #d81b60;
+      --pink-light: rgba(233, 30, 99, 0.08);
+      --pink-border: rgba(233, 30, 99, 0.2);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.03);
+      --radius-lg: 16px;
+      --radius-md: 10px;
     }
-    .admin-sidebar-header { margin-bottom: 32px; }
-    .admin-sidebar-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-    .admin-sidebar-logo-icon { font-size: 28px; }
-    .admin-sidebar-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
-    .admin-sidebar-sub { font-size: 11px; opacity: 0.9; margin-top: 4px; }
-    .admin-sidebar-nav { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-    .admin-sidebar-item { 
-      padding: 12px 16px; border-radius: 10px; background: rgba(255,255,255,0.15); 
-      color: #fff; text-decoration: none; font-size: 14px; font-weight: 600;
-      transition: all .2s; cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    .admin-sidebar-item:hover { background: rgba(255,255,255,0.25); }
-    .admin-sidebar-item.active { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.4); }
-    .admin-sidebar-footer { margin-top: auto; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.2); }
-    .admin-sidebar-user { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-    .admin-sidebar-user-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; }
-    .admin-sidebar-user-name { font-size: 12px; font-weight: 600; }
-    .admin-content { margin-left: 280px; width: calc(100% - 280px); overflow-y: auto; }
-    .admin-nav-top { height: 64px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; sticky: top: 0; z-index: 40; }
-    .admin-nav-title { font-size: 18px; font-weight: 700; color: var(--text); }
-    .admin-main { max-width: 100%; padding: 28px 24px 48px; }
-    .admin-hero { margin-bottom: 28px; }
-    .admin-hero h1 { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 18px; }
-    .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .stat-card { 
-      background: #fff; padding: 20px; border-radius: 14px; border: 1px solid var(--border);
-      box-shadow: var(--shadow);
+
+    body {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    .stat-card-icon { font-size: 24px; margin-bottom: 12px; }
-    .stat-card-value { font-size: 28px; font-weight: 800; color: var(--primary); font-family: 'Syne', sans-serif; margin-bottom: 4px; }
-    .stat-card-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); }
-    .admin-content-row { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
-    .admin-panel { background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
-    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-    .panel-head h2 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin: 0; }
-    .sidebar-panel { max-height: 100%; }
-    @media (max-width: 1200px) { 
-      .admin-content-row { grid-template-columns: 1fr; }
-      .sidebar-panel { max-height: 400px; }
+
+    .admin-container {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
     }
-    @media (max-width: 768px) { 
-      .admin-sidebar { width: 100%; height: auto; position: static; }
-      .admin-content { margin-left: 0; width: 100%; }
-      .admin-nav-top { display: none; }
-      .admin-stats-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+    /* Sidebar Styling */
+    .admin-sidebar {
+      width: 280px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      box-shadow: none;
+    }
+
+    .admin-sidebar-header {
+      margin-bottom: 40px;
+    }
+
+    .admin-sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .admin-sidebar-logo-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--pink-primary), #f48fb1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(233, 30, 99, 0.2);
+      font-size: 0px; /* Hide emoji */
+    }
+
+    .admin-sidebar-logo-icon::before {
+      content: "\f3ed"; /* shield icon in fontawesome */
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      color: white;
+      font-size: 18px;
+    }
+
+    .admin-sidebar-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+
+    .admin-sidebar-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+      opacity: 1;
+    }
+
+    .admin-sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex: 1;
+    }
+
+    .admin-sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+
+    .admin-sidebar-item:hover {
+      background-color: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .admin-sidebar-item.active {
+      background-color: var(--pink-light);
+      color: var(--pink-primary);
+      border: none;
+    }
+
+    .admin-sidebar-footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 24px;
+      margin-top: auto;
+    }
+
+    .admin-sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .admin-sidebar-user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--pink-light);
+      color: var(--pink-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .admin-sidebar-user-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .btn-logout-sidebar {
+      width: 100%;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+
+    .btn-logout-sidebar:hover {
+      background-color: #fee2e2;
+      color: #ef4444;
+      border-color: #fecaca;
+    }
+
+    /* Content Area Styling */
+    .admin-content {
+      margin-left: 280px;
+      width: calc(100% - 280px);
+      background-color: var(--bg-main);
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+
+    .admin-nav-top {
+      display: none; /* Hide old navbar */
+    }
+
+    .admin-main {
+      max-width: 100%;
+      padding: 40px 48px;
+    }
+
+    .breadcrumb {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .breadcrumb span {
+      margin: 0 4px;
+    }
+
+    .breadcrumb a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-wrapper i {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .search-input {
+      padding: 12px 16px 12px 42px;
+      border-radius: 50px;
+      border: 1px solid var(--border-color);
+      font-family: inherit;
+      font-size: 14px;
+      width: 220px;
+      outline: none;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .search-input:focus {
+      border-color: var(--pink-primary);
+      box-shadow: 0 0 0 3px var(--pink-light);
+      width: 260px;
+    }
+
+    .btn-action-primary {
+      padding: 12px 24px;
+      border-radius: 50px;
+      background-color: var(--pink-primary);
+      color: white;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(233, 30, 99, 0.2);
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-action-primary:hover {
+      background-color: var(--pink-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(233, 30, 99, 0.3);
+    }
+
+    /* Hero welcome message style */
+    .admin-hero {
+      margin-bottom: 24px;
+    }
+    .admin-hero h1 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-main);
+      margin-bottom: 0;
+    }
+
+    /* Stats Grid Styling */
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-card-icon {
+      font-size: 24px;
+      margin-bottom: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background-color: var(--pink-light);
+      color: var(--pink-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-card-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    .stat-card-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    /* Content Row Layout */
+    .admin-content-row {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+    }
+
+    .admin-panel {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-head h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .panel-head .admin-search {
+      display: none; /* Hide old redundant search in panel header */
+    }
+
+    /* Table styling to look extremely clean and modern */
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .admin-table th {
+      background-color: #f8fafc;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 20px;
+    }
+
+    .admin-table td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    .admin-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    /* User Avatar and Badges */
+    .user-avatar-fallback {
+      background-color: var(--pink-light) !important;
+      color: var(--pink-primary) !important;
+    }
+
+    .status-pill {
+      font-weight: 700;
+      font-size: 11px;
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
+
+    .status-pill.todo { background-color: rgba(99, 102, 241, 0.08); color: #4f46e5; }
+    .status-pill.doing { background-color: rgba(245, 158, 11, 0.08); color: #d97706; }
+    .status-pill.review { background-color: rgba(236, 72, 153, 0.08); color: #db2777; }
+    .status-pill.done { background-color: rgba(16, 185, 129, 0.08); color: #059669; }
+
+    /* Action Buttons in Table */
+    .btn-admin-sm, a.btn-admin-sm {
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      border: 1px solid var(--border-color);
+      background: white;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn-admin-sm:hover, a.btn-admin-sm:hover {
+      border-color: var(--pink-primary);
+      color: var(--pink-primary);
+      background-color: white;
+    }
+
+    .btn-admin-sm.primary, a.btn-admin-sm.primary {
+      background-color: var(--pink-light);
+      color: var(--pink-primary);
+      border-color: transparent;
+    }
+
+    .btn-admin-sm.primary:hover, a.btn-admin-sm.primary:hover {
+      background-color: rgba(233, 30, 99, 0.15);
+      border-color: transparent;
+      color: var(--pink-primary);
+    }
+
+    .btn-admin-sm.outline, a.btn-admin-sm.outline {
+      border-color: var(--pink-border);
+      color: var(--pink-primary);
+      background-color: white;
+    }
+
+    .btn-admin-sm.outline:hover, a.btn-admin-sm.outline:hover {
+      background-color: var(--pink-light);
+      border-color: var(--pink-primary);
+      color: var(--pink-primary);
+    }
+
+    /* Activity Feed styling */
+    .activity-feed {
+      padding: 16px 20px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-body {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .activity-body strong {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .activity-body span {
+      color: var(--text-muted);
+    }
+
+    .activity-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .activity-meta .status-pill {
+      font-size: 10px;
+      padding: 2px 6px;
+    }
+
+    .activity-meta span:last-child {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Modals Styling */
+    .admin-overlay {
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(8px);
+    }
+
+    .admin-modal {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      padding: 0;
+      overflow: hidden;
+      max-width: 540px;
+    }
+
+    .admin-modal-lg {
+      max-width: 860px;
+    }
+
+    .admin-modal-head {
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .admin-modal-head h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .admin-modal-body {
+      padding: 24px;
+    }
+
+    .admin-modal-foot {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border-color);
+      background-color: #f8fafc;
+    }
+
+    .admin-input, select.admin-input {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background-color: white;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .admin-input:focus {
+      border-color: var(--pink-primary);
+      box-shadow: 0 0 0 3px var(--pink-light);
+    }
+
+    .admin-form-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+
+    /* Modal primary and cancel buttons */
+    .btn-admin-primary {
+      background: var(--pink-primary);
+      color: white;
+      box-shadow: 0 4px 10px rgba(233, 30, 99, 0.15);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 18px;
+    }
+
+    .btn-admin-primary:hover {
+      background: var(--pink-hover);
+      box-shadow: 0 6px 14px rgba(233, 30, 99, 0.25);
+    }
+
+    .btn-admin-ghost {
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 18px;
+    }
+
+    .btn-admin-ghost:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    .btn-admin-danger {
+      background-color: #fee2e2;
+      color: #ef4444;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 18px;
+    }
+
+    .btn-admin-danger:hover {
+      background-color: #fca5a5;
+      color: #b91c1c;
+    }
+
+    /* Detail profile layout inside modal */
+    .detail-profile {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+
+    .detail-profile-info h4 {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .detail-profile-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .detail-stat-pill {
+      background: white;
+      border: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-main);
+      padding: 4px 10px;
+      border-radius: 30px;
+    }
+
+    /* Toast Notification */
+    .admin-toast {
+      background-color: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      padding: 14px 20px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .admin-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .admin-content-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .admin-sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .admin-sidebar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      .admin-content {
+        margin-left: 0;
+        width: 100%;
+      }
+      .admin-main {
+        padding: 24px 16px;
+      }
+      .header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .admin-stats-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -70,17 +758,27 @@
   <aside class="admin-sidebar">
     <div class="admin-sidebar-header">
       <div class="admin-sidebar-logo">
-        <span class="admin-sidebar-logo-icon">🛡️</span>
+        <span class="admin-sidebar-logo-icon"></span>
         <div>
-          <div class="admin-sidebar-title">TaskMate</div>
-          <div class="admin-sidebar-sub">Admin Panel</div>
+          <div class="admin-sidebar-title">TaskMate Admin</div>
+          <div class="admin-sidebar-sub">Panel Kontrol</div>
         </div>
       </div>
     </div>
     
     <nav class="admin-sidebar-nav">
-      <button class="admin-sidebar-item active" data-nav="dashboard">📊 Dashboard</button>
-      <button class="admin-sidebar-item" data-nav="admins">🛡️ Kelola Admin</button>
+      <button class="admin-sidebar-item active" data-nav="dashboard">
+        <i class="fa-solid fa-house" style="margin-right: 12px; font-size: 16px;"></i>
+        <span>Dashboard</span>
+      </button>
+      <button class="admin-sidebar-item" data-nav="admins">
+        <i class="fa-solid fa-shield-halved" style="margin-right: 12px; font-size: 16px;"></i>
+        <span>Kelola Admin</span>
+      </button>
+      <button class="admin-sidebar-item" onclick="window.location.href='{{ route('admin.mahasiswas.create') }}'">
+        <i class="fa-solid fa-user-plus" style="margin-right: 12px; font-size: 16px;"></i>
+        <span>Tambah Mahasiswa</span>
+      </button>
     </nav>
 
     <div class="admin-sidebar-footer">
@@ -90,43 +788,65 @@
       </div>
       <form method="POST" action="{{ route('admin.logout') }}" style="width:100%">
         @csrf
-        <button type="submit" class="admin-sidebar-item" style="width: 100%; text-align: left; margin:0">🚪 Logout</button>
+        <button type="submit" class="btn-logout-sidebar">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span>Logout</span>
+        </button>
       </form>
     </div>
   </aside>
 
   <!-- Content Area -->
   <div class="admin-content">
-    <nav class="admin-nav-top">
-      <h2 class="admin-nav-title">Dashboard Admin</h2>
-    </nav>
-
     <main class="admin-main">
+      
       <!-- Section Dashboard -->
       <div id="section-dashboard" class="admin-section">
-        <!-- Stats Cards -->
-        <div class="admin-hero">
+        
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+          <a href="#">Dashboard</a>
+          <span>/</span>
+          <a href="#" style="color: var(--text-main);">Kelola Mahasiswa</a>
+        </nav>
+
+        <!-- Header Row -->
+        <div class="header-row">
+          <h1 class="page-title">Kelola Akun Mahasiswa</h1>
+          <div class="header-actions">
+            <div class="search-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="userSearch" class="search-input" placeholder="Search">
+            </div>
+            <a href="{{ route('admin.mahasiswas.create') }}" class="btn-action-primary">
+              Tambah Mahasiswa
+            </a>
+          </div>
+        </div>
+
+        <div class="admin-hero" style="display: none;">
           <h1>Selamat datang kembali! 👋</h1>
         </div>
 
+        <!-- Stats Cards -->
         <div class="admin-stats-grid">
           <div class="stat-card">
-            <div class="stat-card-icon">👥</div>
+            <div class="stat-card-icon"><i class="fa-solid fa-users"></i></div>
             <div class="stat-card-value" id="statUsers">{{ $stats['mahasiswa'] ?? 0 }}</div>
             <div class="stat-card-label">Total Mahasiswa</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon">📋</div>
+            <div class="stat-card-icon"><i class="fa-solid fa-list-check"></i></div>
             <div class="stat-card-value" id="statTasks">{{ $stats['tasks'] ?? 0 }}</div>
             <div class="stat-card-label">Total Tugas</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon">✅</div>
+            <div class="stat-card-icon"><i class="fa-solid fa-circle-check"></i></div>
             <div class="stat-card-value" id="statDone">{{ $stats['done'] ?? 0 }}</div>
             <div class="stat-card-label">Tugas Selesai</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card-icon">📈</div>
+            <div class="stat-card-icon"><i class="fa-solid fa-chart-line"></i></div>
             <div class="stat-card-value">{{ round(($stats['done'] ?? 0) / max(1, ($stats['tasks'] ?? 0)) * 100) }}%</div>
             <div class="stat-card-label">Tingkat Penyelesaian</div>
           </div>
@@ -138,10 +858,6 @@
           <section class="admin-panel">
             <div class="panel-head">
               <h2>Daftar Mahasiswa</h2>
-              <div class="admin-search">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="userSearch" placeholder="Cari NIM, nama, atau email...">
-              </div>
             </div>
 
             <div class="table-wrap">
@@ -169,7 +885,7 @@
                         @if ($mhs->photo_url)
                           <img src="{{ $mhs->photo_url }}" alt="{{ $mhs->nama }}" class="user-avatar" style="width:34px;height:34px;border-radius:50%;object-fit:cover">
                         @else
-                          <div class="user-avatar-fallback" style="width:34px;height:34px;border-radius:50%;background:#fce4ec;color:#e91e63;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+                          <div class="user-avatar-fallback" style="width:34px;height:34px;border-radius:50%;background:var(--pink-light);color:var(--pink-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
                             {{ strtoupper(substr($mhs->nama, 0, 1)) }}
                           </div>
                         @endif
@@ -186,8 +902,8 @@
                       <td><strong>{{ $mhs->tasks_count ?? 0 }}</strong></td>
                       <td class="action-cell">
                         <a href="{{ route('admin.mahasiswas.board', $mhs->id) }}" class="btn-admin-sm primary">Dashboard</a>
-                        <a href="{{ route('admin.mahasiswas.show', $mhs->id) }}" class="btn-admin-sm">Lihat Data</a>
-                        <a href="{{ route('admin.mahasiswas.edit', $mhs->id) }}" class="btn-admin-sm outline">Edit</a>
+                        <button type="button" class="btn-admin-sm" onclick="openUserDetail({{ $mhs->id }})">Lihat Data</button>
+                        <button type="button" class="btn-admin-sm outline" onclick="openEditUser({{ $mhs->id }})">Edit</button>
                       </td>
                     </tr>
                   @empty
@@ -200,7 +916,7 @@
 
           <!-- Activity Sidebar -->
           <section class="admin-panel sidebar-panel">
-            <div class="panel-head" style="border-bottom: 1px solid var(--border); margin-bottom: 0;">
+            <div class="panel-head" style="border-bottom: 1px solid var(--border-color); margin-bottom: 0;">
               <h2>Aktivitas Terbaru</h2>
             </div>
             <div class="activity-feed" id="activityFeed" style="max-height: none; padding: 12px 8px 8px;">
@@ -212,7 +928,24 @@
 
       <!-- Section Admins (Kelola Admin) -->
       <div id="section-admins" class="admin-section" style="display: none;">
-        <div class="admin-hero">
+        
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+          <a href="#">Dashboard</a>
+          <span>/</span>
+          <a href="#" style="color: var(--text-main);">Kelola Admin</a>
+        </nav>
+
+        <div class="header-row">
+          <h1 class="page-title">Kelola Admin</h1>
+          <div class="header-actions">
+            <button class="btn-action-primary" id="addAdminBtn">
+              + Tambah Admin Baru
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-hero" style="display: none;">
           <h1>Kelola Admin 🛡️</h1>
           <p>Kelola data akun administrator yang memiliki akses ke panel TaskMate.</p>
         </div>
@@ -220,7 +953,6 @@
         <section class="admin-panel">
           <div class="panel-head">
             <h2>Daftar Administrator</h2>
-            <button class="btn-admin-primary" id="addAdminBtn">+ Tambah Admin Baru</button>
           </div>
 
           <div class="table-wrap">
@@ -249,20 +981,21 @@
       <div class="admin-modal-head">
         <div>
           <h3 id="detailUserName">Detail Mahasiswa</h3>
-          <p id="detailUserMeta"></p>
+          <p id="detailUserMeta" style="color: var(--text-muted); font-size: 13px; margin-top: 4px;"></p>
         </div>
         <button class="modal-x" id="closeDetailBtn">✕</button>
       </div>
       <div class="admin-modal-body">
         <div id="detailUserProfile" class="detail-profile"></div>
-        <div class="detail-actions">
+        <div class="detail-actions" style="display: flex; gap: 8px; margin: 20px 0; flex-wrap: wrap;">
           <button class="btn-admin-primary" id="viewBoardBtn">Lihat Dashboard User</button>
-          <button class="btn-admin-primary" id="editUserBtn">Edit Akun</button>
+          <button class="btn-admin-ghost" id="editUserBtn">Edit Akun</button>
+          <button class="btn-admin-danger" id="resetPasswordBtn" style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fecaca;">Reset Password</button>
           <button class="btn-admin-danger" id="deleteUserBtn">Hapus Akun</button>
         </div>
 
-        <div class="task-toolbar">
-          <h4>Tugas Mahasiswa</h4>
+        <div class="task-toolbar" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <h4 style="font-weight: 800; font-size: 15px;">Tugas Mahasiswa</h4>
           <button class="btn-admin-primary" id="addTaskBtn">+ Tambah Tugas</button>
         </div>
 
@@ -342,7 +1075,7 @@
           <label>Deskripsi</label>
           <textarea id="taskDesc" class="admin-input" rows="3"></textarea>
         </div>
-        <div class="admin-form-row">
+        <div class="admin-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="admin-form-group">
             <label>Status</label>
             <select id="taskStatus" class="admin-input">

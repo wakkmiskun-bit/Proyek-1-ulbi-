@@ -24,19 +24,44 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
-        $validated = $request->validated();
         $mahasiswa = $request->user();
-
-        $mahasiswa->fill([
-            'nama' => $validated['name'],
-            'email' => $validated['email'],
+        
+        $request->validate([
+            'nama' => ['required_without:name', 'string', 'max:255'],
+            'name' => ['required_without:nama', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:mahasiswas,email,' . $mahasiswa->id],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'universitas' => ['nullable', 'string', 'max:255'],
+            'semester' => ['nullable', 'integer', 'min:1', 'max:8'],
+            'foto' => ['nullable', 'image', 'max:2048'],
         ]);
+
+        $mahasiswa->nama = $request->input('nama') ?? $request->input('name');
+        $mahasiswa->email = $request->input('email');
+        if ($request->has('phone')) {
+            $mahasiswa->phone = $request->input('phone');
+        }
+        if ($request->has('universitas')) {
+            $mahasiswa->universitas = $request->input('universitas');
+        }
+        if ($request->has('semester')) {
+            $mahasiswa->semester = $request->input('semester');
+        }
+
+        if ($request->hasFile('foto')) {
+            $path = $request->file('foto')->store('profile-photos', 'public');
+            $mahasiswa->foto = $path;
+        }
 
         $mahasiswa->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        if (str_contains(url()->previous(), 'dashboard')) {
+            return redirect()->route('dashboard')->with('status', 'profile-updated');
+        }
+
+        return redirect()->route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**

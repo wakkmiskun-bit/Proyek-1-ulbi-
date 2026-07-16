@@ -296,9 +296,64 @@
     @media (max-width: 768px) and (min-width: 481px) {
       .logo-text { font-size: clamp(44px, 10vw, 64px); }
     }
+
+    /* ── TOP NAV BANTUAN ── */
+    .top-nav {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 10;
+    }
+    .btn-help {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 99px;
+      background: rgba(251, 247, 244, 0.05);
+      border: 1px solid rgba(251, 247, 244, 0.15);
+      color: #fbf7f4;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+    .btn-help i {
+      font-size: 16px;
+      color: #ff8da1;
+    }
+    .btn-help:hover {
+      background: rgba(233, 30, 99, 0.1);
+      border-color: rgba(233, 30, 99, 0.35);
+      color: #ff8da1;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(233, 30, 99, 0.15);
+    }
+    .btn-help:active {
+      transform: scale(0.97);
+    }
+
+    @media (max-width: 480px) {
+      .top-nav {
+        top: 16px;
+        right: 16px;
+      }
+      .btn-help {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Top Nav Bantuan -->
+  <div class="top-nav">
+    <a href="{{ route('bantuan') }}" class="btn-help">
+      <i class="ti ti-help"></i> Bantuan
+    </a>
+  </div>
 
   <!-- BG -->
   <div class="bg">

@@ -29,7 +29,32 @@ Route::get('/dashboard', function () {
         return redirect()->route('admin.dashboard');
     }
 
-    return view('dashboard');
+    $mahasiswa = Auth::guard('web')->user();
+    $tasks = $mahasiswa->tasks()->orderBy('sort_order')->get();
+    
+    $totalTasks = $tasks->count();
+    $doneCount = $tasks->where('status', 'done')->count();
+    $activeCount = $totalTasks - $doneCount;
+    $completionRate = $totalTasks > 0 ? round(($doneCount / $totalTasks) * 100) : 0;
+
+    $upcomingTasks = $mahasiswa->tasks()
+        ->where('status', '!=', 'done')
+        ->whereNotNull('deadline')
+        ->orderBy('deadline')
+        ->take(5)
+        ->get();
+
+    $activities = $mahasiswa->activities()->latest()->take(5)->get();
+
+    return view('dashboard', [
+        'tasks' => $tasks,
+        'totalTasks' => $totalTasks,
+        'doneCount' => $doneCount,
+        'activeCount' => $activeCount,
+        'completionRate' => $completionRate,
+        'upcomingTasks' => $upcomingTasks,
+        'activities' => $activities,
+    ]);
 })->middleware(['auth:web'])->name('dashboard');
 
 Route::middleware('auth:web')->group(function () {
@@ -53,6 +78,8 @@ Route::middleware(['auth:admin', 'admin'])->prefix('admin')->name('admin.')->gro
     Route::delete('/admins/{admin}', [AdminDashboardController::class, 'adminsDestroy'])->name('admins.destroy');
     Route::get('/mahasiswas', [AdminDashboardController::class, 'mahasiswas'])->name('mahasiswas.index');
     Route::get('/activities', [AdminDashboardController::class, 'activities'])->name('activities');
+    Route::get('/mahasiswas/create', [AdminDashboardController::class, 'createMahasiswa'])->name('mahasiswas.create');
+    Route::post('/mahasiswas', [AdminDashboardController::class, 'storeMahasiswa'])->name('mahasiswas.store');
     Route::get('/mahasiswas/{mahasiswa}/board', [AdminDashboardController::class, 'userBoard'])->name('mahasiswas.board');
     Route::get('/mahasiswas/{mahasiswa}', [AdminDashboardController::class, 'show'])->name('mahasiswas.show');
     Route::get('/mahasiswas/{mahasiswa}/edit', [AdminDashboardController::class, 'edit'])->name('mahasiswas.edit');
@@ -67,4 +94,11 @@ Route::get('/welcome', function () {
     return view('welcome');
 })->middleware(['auth:web']);
 
+Route::get('/bantuan', function () {
+    $phone = env('ADMIN_WHATSAPP', '6282216151741');
+    $phone = preg_replace('/\D/', '', $phone);
+    return view('bantuan', ['adminPhone' => $phone]);
+})->name('bantuan');
+
 require __DIR__.'/auth.php';
+

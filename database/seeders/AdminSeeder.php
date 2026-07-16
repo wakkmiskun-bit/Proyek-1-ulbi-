@@ -10,10 +10,10 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         Admin::query()->updateOrCreate(
-            ['email' => 'admin1@gmail.com'],
+            ['email' => 'admin@gmail.com'],
             [
                 'nama' => 'Administrator TaskMate',
-                'password' => 'admin111',
+                'password' => 'admin123',
             ]
         );
     }

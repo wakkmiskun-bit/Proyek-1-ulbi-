@@ -56,6 +56,37 @@ class AdminDashboardController extends Controller
         return view('admin.show', compact('mahasiswa', 'activities'));
     }
 
+    public function createMahasiswa(): View
+    {
+        return view('admin.create');
+    }
+
+    public function storeMahasiswa(Request $request): JsonResponse
+    {
+        if ($request->has('name') && ! $request->has('nama')) {
+            $request->merge(['nama' => $request->input('name')]);
+        }
+
+        $validated = $request->validate([
+            'nim' => ['required', 'string', 'max:20', Rule::unique('mahasiswas', 'nim')],
+            'nama' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('mahasiswas', 'email')],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'universitas' => ['required', 'string', 'max:255'],
+            'semester' => ['required', 'integer', 'min:1', 'max:8'],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+
+        if (array_key_exists('phone', $validated) && $validated['phone']) {
+            $validated['phone'] = Mahasiswa::normalizePhone($validated['phone']);
+        }
+
+        $mahasiswa = Mahasiswa::create($validated);
+        ActivityLogger::logMahasiswaRegistered($mahasiswa);
+
+        return response()->json($mahasiswa, 201);
+    }
+
     public function edit(Mahasiswa $mahasiswa): View
     {
         return view('admin.edit', compact('mahasiswa'));
@@ -110,6 +141,7 @@ class AdminDashboardController extends Controller
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('mahasiswas', 'email')->ignore($mahasiswa->id)],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'universitas' => ['sometimes', 'required', 'string', 'max:255'],
+            'semester' => ['sometimes', 'required', 'integer', 'min:1', 'max:8'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 

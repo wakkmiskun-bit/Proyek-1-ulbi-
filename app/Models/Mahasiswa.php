@@ -22,6 +22,7 @@ class Mahasiswa extends Authenticatable
         'phone',
         'foto',
         'universitas',
+        'semester',
     ];
 
     protected $hidden = [

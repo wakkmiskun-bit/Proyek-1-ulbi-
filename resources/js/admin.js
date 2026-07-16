@@ -4,8 +4,31 @@ let users = [];
 let activeUser = null;
 let editingTask = null;
 
+function getBaseUrl() {
+  const meta = document.querySelector('meta[name="base-url"]');
+  if (meta) {
+    try {
+      const url = new URL(meta.content);
+      return url.pathname.replace(/\/$/, '');
+    } catch (_) {
+      return meta.content.replace(/\/$/, '');
+    }
+  }
+  return '';
+}
+
+function getFullUrl(url) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const base = getBaseUrl();
+  const path = url.startsWith('/') ? url : '/' + url;
+  return base + path;
+}
+
 async function apiFetch(url, options = {}) {
-  const res = await fetch(url, {
+  const fullUrl = getFullUrl(url);
+  const res = await fetch(fullUrl, {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -156,8 +179,8 @@ function renderUsers(list) {
       <td><strong>${u.tasks_count || 0}</strong></td>
       <td class="action-cell">
         <a href="${boardUrl(u.id)}" class="btn-admin-sm primary">Dashboard</a>
-        <a href="${boardBase}/${u.id}" class="btn-admin-sm">Lihat Data</a>
-        <a href="${boardBase}/${u.id}/edit" class="btn-admin-sm outline">Edit</a>
+        <button type="button" class="btn-admin-sm" onclick="openUserDetail(${u.id})">Lihat Data</button>
+        <button type="button" class="btn-admin-sm outline" onclick="openEditUser(${u.id})">Edit</button>
       </td>
     </tr>
   `).join('');
@@ -245,6 +268,9 @@ async function openEditUser(userId) {
   document.getElementById('editPasswordConfirm').value = '';
   openModal('editUserModal');
 }
+
+window.openUserDetail = openUserDetail;
+window.openEditUser = openEditUser;
 
 function openTaskModal(task = null) {
   editingTask = task;
@@ -342,6 +368,28 @@ document.getElementById('deleteUserBtn')?.addEventListener('click', async () => 
   closeModal('userDetailModal');
   activeUser = null;
   await refreshAll();
+});
+
+document.getElementById('resetPasswordBtn')?.addEventListener('click', async () => {
+  if (!activeUser) return;
+  const newPassword = prompt(`Masukkan password baru untuk mahasiswa ${activeUser.name}:`, "password123");
+  if (newPassword === null) return; // User cancelled
+  if (newPassword.trim().length < 8) {
+    toast('Password minimal 8 karakter', '⚠️');
+    return;
+  }
+  try {
+    await apiFetch(`/admin/mahasiswas/${activeUser.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        password: newPassword,
+        password_confirmation: newPassword
+      }),
+    });
+    toast('Kata sandi berhasil di-reset!', '✅');
+  } catch (_) {
+    // Error toast is handled by apiFetch
+  }
 });
 
 document.getElementById('addTaskBtn')?.addEventListener('click', () => openTaskModal(null));

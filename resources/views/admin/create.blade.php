@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="base-url" content="{{ url('/') }}">
-  <title>Edit Akun Mahasiswa - TaskMate Admin</title>
+  <title>Tambah Akun Mahasiswa - TaskMate Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -597,7 +597,7 @@
     <nav class="breadcrumb">
       <a href="{{ route('admin.dashboard') }}">Kelola Mahasiswa</a>
       <span>/</span>
-      <a href="#" style="color: var(--text-main);">Edit Akun</a>
+      <a href="#" style="color: var(--text-main);">Tambah Akun</a>
     </nav>
 
     <!-- Header Row -->
@@ -625,7 +625,7 @@
         <!-- Alerts -->
         <div id="successAlert" class="alert alert-success">
           <i class="fa-solid fa-circle-check"></i>
-          <span>Data mahasiswa berhasil diperbarui!</span>
+          <span>Akun mahasiswa berhasil ditambahkan!</span>
         </div>
         <div id="errorAlert" class="alert alert-error">
           <i class="fa-solid fa-circle-xmark"></i>
@@ -633,15 +633,14 @@
         </div>
 
         <!-- Form -->
-        <form id="editForm" method="POST" action="{{ route('admin.mahasiswas.update', $mahasiswa->id) }}">
+        <form id="createForm" method="POST" action="{{ route('admin.mahasiswas.store') }}">
           @csrf
-          @method('PUT')
 
           <!-- Nama Lengkap -->
           <div class="form-group">
             <label class="form-label" for="name">Nama Lengkap</label>
             <div class="form-input-wrapper">
-              <input type="text" id="name" name="name" class="form-input" value="{{ $mahasiswa->nama }}" required>
+              <input type="text" id="name" name="name" class="form-input" placeholder="Andi Prasetyo" required>
             </div>
           </div>
 
@@ -649,7 +648,7 @@
           <div class="form-group">
             <label class="form-label" for="nim">NIM</label>
             <div class="form-input-wrapper">
-              <input type="text" id="nim" name="nim" class="form-input" value="{{ $mahasiswa->nim }}" required>
+              <input type="text" id="nim" name="nim" class="form-input" placeholder="20110543" required>
             </div>
           </div>
 
@@ -657,7 +656,7 @@
           <div class="form-group">
             <label class="form-label" for="email">Email</label>
             <div class="form-input-wrapper">
-              <input type="email" id="email" name="email" class="form-input" value="{{ $mahasiswa->email }}" required>
+              <input type="email" id="email" name="email" class="form-input" placeholder="andip@university.ac.id" required>
             </div>
           </div>
 
@@ -665,7 +664,7 @@
           <div class="form-group">
             <label class="form-label" for="phone">Nomor WhatsApp</label>
             <div class="form-input-wrapper">
-              <input type="tel" id="phone" name="phone" class="form-input" value="{{ $mahasiswa->phone ?? '' }}" placeholder="+62 812 3456 7890">
+              <input type="tel" id="phone" name="phone" class="form-input" placeholder="+62 812 3456 7890">
             </div>
           </div>
 
@@ -674,11 +673,12 @@
             <label class="form-label" for="universitas">Universitas</label>
             <div class="form-input-wrapper">
               <select id="universitas" name="universitas" class="form-input" style="appearance: none;" required>
-                <option value="Universitas Indonesia" {{ $mahasiswa->universitas == 'Universitas Indonesia' ? 'selected' : '' }}>Universitas Indonesia</option>
-                <option value="Institut Teknologi Bandung" {{ $mahasiswa->universitas == 'Institut Teknologi Bandung' ? 'selected' : '' }}>Institut Teknologi Bandung</option>
-                <option value="Universitas Padjadjaran" {{ $mahasiswa->universitas == 'Universitas Padjadjaran' ? 'selected' : '' }}>Universitas Padjadjaran</option>
-                <option value="Universitas Gadjah Mada" {{ $mahasiswa->universitas == 'Universitas Gadjah Mada' ? 'selected' : '' }}>Universitas Gadjah Mada</option>
-                <option value="Universitas Logistik dan Bisnis Internasional" {{ $mahasiswa->universitas == 'Universitas Logistik dan Bisnis Internasional' ? 'selected' : '' }}>Universitas Logistik dan Bisnis Internasional</option>
+                <option value="" disabled selected>Pilih Universitas</option>
+                <option value="Universitas Indonesia">Universitas Indonesia</option>
+                <option value="Institut Teknologi Bandung">Institut Teknologi Bandung</option>
+                <option value="Universitas Padjadjaran">Universitas Padjadjaran</option>
+                <option value="Universitas Gadjah Mada">Universitas Gadjah Mada</option>
+                <option value="Universitas Logistik dan Bisnis Internasional">Universitas Logistik dan Bisnis Internasional</option>
               </select>
               <i class="fa-solid fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; font-size: 13px;"></i>
             </div>
@@ -689,19 +689,20 @@
             <label class="form-label" for="semester">Semester</label>
             <div class="form-input-wrapper">
               <select id="semester" name="semester" class="form-input" style="appearance: none;" required>
+                <option value="" disabled selected>Pilih Semester</option>
                 @for($i = 1; $i <= 8; $i++)
-                  <option value="{{ $i }}" {{ $mahasiswa->semester == $i ? 'selected' : '' }}>Semester {{ $i }}</option>
+                  <option value="{{ $i }}">Semester {{ $i }}</option>
                 @endfor
               </select>
               <i class="fa-solid fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; font-size: 13px;"></i>
             </div>
           </div>
 
-          <!-- Password (Opsional) -->
+          <!-- Password -->
           <div class="form-group">
-            <label class="form-label" for="password">Password Baru (opsional)</label>
+            <label class="form-label" for="password">Password</label>
             <div class="form-input-wrapper">
-              <input type="password" id="password" name="password" class="form-input" placeholder="Kosongkan jika tidak diubah">
+              <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required>
               <i class="fa-solid fa-eye-slash password-toggle" id="togglePasswordBtn"></i>
             </div>
           </div>
@@ -709,7 +710,7 @@
           <!-- Form Actions -->
           <div class="form-actions">
             <button type="submit" class="btn-submit" id="submitBtn">
-              <span>Simpan Perubahan</span>
+              <span>Simpan Data</span>
               <div class="loader" id="submitLoader"></div>
             </button>
             <a href="{{ route('admin.dashboard') }}" class="btn-cancel">Batal</a>
@@ -735,7 +736,7 @@
     });
 
     // AJAX Form Submit
-    const editForm = document.getElementById('editForm');
+    const createForm = document.getElementById('createForm');
     const submitBtn = document.getElementById('submitBtn');
     const submitLoader = document.getElementById('submitLoader');
     const successAlert = document.getElementById('successAlert');
@@ -743,7 +744,7 @@
     const errorAlertText = document.getElementById('errorAlertText');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    editForm.addEventListener('submit', async function(e) {
+    createForm.addEventListener('submit', async function(e) {
       e.preventDefault();
 
       // Reset alert states
@@ -755,24 +756,11 @@
       submitLoader.style.display = 'block';
 
       try {
-        const formData = new FormData(editForm);
-        const data = Object.fromEntries(formData.entries());
+        const formData = new FormData(createForm);
+        const payload = Object.fromEntries(formData.entries());
 
-        const payload = {
-          nim: data.nim,
-          nama: data.name,
-          email: data.email,
-          phone: data.phone || null,
-          universitas: data.universitas || null,
-          semester: data.semester ? Number(data.semester) : null,
-        };
-
-        if (data.password) {
-          payload.password = data.password;
-        }
-
-        const response = await fetch(editForm.action, {
-          method: 'PUT',
+        const response = await fetch(createForm.action, {
+          method: 'POST',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
@@ -785,6 +773,7 @@
         const result = await response.json();
 
         if (!response.ok) {
+          // If validator fails, we display errors
           let errorMsg = result.message || 'Gagal menyimpan data akun mahasiswa.';
           if (result.errors) {
             const firstErrorKey = Object.keys(result.errors)[0];
@@ -795,6 +784,7 @@
 
         // Show Success Alert
         successAlert.style.display = 'flex';
+        createForm.reset();
 
         // Redirect to dashboard after 1.5 seconds
         setTimeout(() => {

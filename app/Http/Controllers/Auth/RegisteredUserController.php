@@ -26,6 +26,7 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:mahasiswas,email'],
             'phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             'universitas' => ['required', 'string', 'max:255'],
+            'semester' => ['required', 'integer', 'min:1', 'max:8'],
             'photo' => ['nullable', 'image', 'max:2048'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], [
@@ -43,6 +44,7 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'phone' => Mahasiswa::normalizePhone($request->phone),
             'universitas' => $request->universitas,
+            'semester' => $request->semester,
             'foto' => $fotoPath,
             'password' => $request->password,
         ]);

@@ -20,6 +20,7 @@ class MahasiswaFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'phone' => '628'.fake()->numerify('##########'),
             'universitas' => fake()->randomElement(['Universitas Logistik dan Bisnis Internasional', 'Universitas Indonesia', 'Institut Teknologi Bandung']),
+            'semester' => fake()->numberBetween(1, 8),
             'password' => 'password',
         ];
     }
