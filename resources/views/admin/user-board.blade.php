@@ -24,6 +24,41 @@
       border: 2px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.2);
       display: flex; align-items: center; justify-content: center; font-size: 14px;
     }
+
+    @media (max-width: 992px) {
+      .admin-preview-bar > span:last-child {
+        display: none;
+      }
+    }
+    @media (max-width: 640px) {
+      .admin-preview-bar {
+        padding: 0 10px;
+        height: auto;
+        min-height: 48px;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-block: 8px;
+      }
+      .admin-preview-bar a {
+        font-size: 11px;
+        padding: 5px 10px;
+      }
+      .preview-user {
+        font-size: 11px;
+      }
+      .preview-user span {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+      }
+    }
+    @media (max-width: 480px) {
+      .navbar .nav-right .stat-chip {
+        display: none;
+      }
+    }
   </style>
   <script>window.TASKMATE_BOARD = { adminUserId: {{ $mahasiswa->id }} };</script>
 </head>

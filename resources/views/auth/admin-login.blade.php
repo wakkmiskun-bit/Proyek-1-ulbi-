@@ -26,7 +26,7 @@
         .brand-name { font-family: 'Syne', sans-serif; }
     </style>
 </head>
-<body class="overflow-hidden">
+<body class="overflow-x-hidden">
     <div class="fixed inset-0 pointer-events-none">
         <div class="absolute w-[500px] h-[500px] rounded-full -top-32 -left-24" style="background: radial-gradient(circle, rgba(233,30,99,0.06) 0%, transparent 70%); animation: float 20s ease-in-out infinite;"></div>
         <div class="absolute w-[400px] h-[400px] rounded-full top-10 -right-20" style="background: radial-gradient(circle, rgba(240,98,146,0.05) 0%, transparent 70%); animation: float 25s ease-in-out infinite reverse;"></div>

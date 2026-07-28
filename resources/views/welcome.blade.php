@@ -22,7 +22,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
             position: relative;
         }
 
@@ -116,7 +116,7 @@
         }
 
         h1 {
-            font-size: 3.8rem;
+            font-size: clamp(2rem, 7vw, 3.8rem);
             font-weight: 800;
             background: linear-gradient(135deg, #fbf7f4 0%, #ff8da1 100%);
             -webkit-background-clip: text;
@@ -128,7 +128,7 @@
         }
 
         .subtitle {
-            font-size: 1.35rem;
+            font-size: clamp(1rem, 2.5vw, 1.35rem);
             color: #cbd5e1;
             margin-bottom: 0.5rem;
             font-weight: 500;
@@ -136,7 +136,7 @@
         }
 
         .description {
-            font-size: 1.05rem;
+            font-size: clamp(0.9rem, 1.8vw, 1.05rem);
             color: #a0aec0;
             margin-bottom: 3rem;
             line-height: 1.7;
@@ -156,7 +156,7 @@
 
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 1.5rem;
             margin-bottom: 3.5rem;
             animation: fadeInScale 1s ease-out 0.5s both;
@@ -172,6 +172,10 @@
             cursor: pointer;
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .feature-item::before {
@@ -226,6 +230,10 @@
 
         .btn {
             padding: 1rem 2.5rem;
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 12px;
             font-size: 1.05rem;
             font-weight: 700;
@@ -302,12 +310,13 @@
         }
 
         @media (max-width: 640px) {
-            h1 { font-size: 2.5rem; }
+            h1 { font-size: clamp(1.8rem, 8vw, 2.5rem); }
             .subtitle { font-size: 1.1rem; }
             .welcome-icon { font-size: 3.5rem; }
-            .features { grid-template-columns: 1fr; gap: 1rem; }
-            .button-group { gap: 0.8rem; }
-            .btn { padding: 0.85rem 1.8rem; font-size: 0.95rem; }
+            .features { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; }
+            .button-group { flex-direction: column; gap: 0.8rem; width: 100%; max-width: min(290px, 100%); margin: 0 auto; }
+            .button-group form { display: block; width: 100%; }
+            .btn { width: 100%; min-height: 48px; padding: 0.85rem 1.8rem; font-size: 0.95rem; }
         }
     </style>
 </head>

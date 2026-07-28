@@ -36,6 +36,8 @@ body {
 ═══════════════════════════════════════════ */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+img { max-width: 100%; height: auto; object-fit: cover; }
+
 :root {
   --c0: #f8fafc;
   --c1: #ffffff;
@@ -1327,6 +1329,7 @@ body {
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   transition: all 0.2s ease;
+  min-height: 128px;
 }
 .dashboard-stat-card:hover {
   transform: translateY(-2px);
@@ -1853,10 +1856,11 @@ body {
   .student-content {
     margin-left: 0 !important;
     width: 100% !important;
-    padding: 84px 20px 40px !important; /* Top padding to prevent header overlap */
+    padding: 84px clamp(16px, 4vw, 24px) 40px !important; /* Top padding to prevent header overlap */
   }
   .dashboard-stats-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
   }
   .dashboard-bottom-grid {
     grid-template-columns: 1fr;
@@ -1878,7 +1882,7 @@ body {
     margin-bottom: 12px;
   }
   .mob-col-tab {
-    flex: 1;
+    flex: 1 0 auto;
     justify-content: center;
   }
   
@@ -1906,7 +1910,22 @@ body {
   
   /* Give bottom padding to student-content to avoid bottom nav overlay */
   .student-content {
-    padding-bottom: 94px !important;
+    padding: 76px clamp(12px, 3vw, 16px) 94px !important;
+  }
+  
+  .board-wrap {
+    padding: 8px 0 24px;
+  }
+  .calendar-wrapper {
+    padding: 12px;
+  }
+  
+  .dashboard-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .dashboard-stats-row .dashboard-stat-card:nth-child(2) {
+    grid-column: span 2;
   }
   
   .calendar-grid-cells {
@@ -1918,5 +1937,38 @@ body {
   }
   .calendar-cell-num {
     font-size: 11px;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-stats-row {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-stats-row .dashboard-stat-card:nth-child(2) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .deadline-task-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .task-info-right {
+    width: 100%;
+    justify-content: space-between;
+    padding-left: 29px; /* align with title text */
+  }
+}
+
+@media (max-width: 360px) {
+  .mob-col-tab {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .mobile-logo-text {
+    display: none;
   }
 }

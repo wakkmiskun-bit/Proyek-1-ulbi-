@@ -113,7 +113,7 @@
       flex-shrink: 0;
     }
     .logo-text {
-      font-size: clamp(36px, 9vw, 72px);
+      font-size: clamp(2.2rem, 8vw, 4.5rem);
       font-weight: 800;
       letter-spacing: -1.5px;
       line-height: 1;
@@ -123,7 +123,7 @@
 
     /* Tagline */
     .tagline {
-      font-size: 13px; font-weight: 700;
+      font-size: clamp(11px, 2vw, 13px); font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
       color: #a8938e;
       margin-bottom: 20px;
@@ -133,7 +133,7 @@
 
     /* Sub */
     .sub {
-      font-size: 15px; color: #c3b4b0;
+      font-size: clamp(13.5px, 1.8vw, 15px); color: #c3b4b0;
       max-width: 360px; line-height: 1.8;
       margin-bottom: 36px; font-weight: 400;
       opacity: 0;
@@ -152,6 +152,7 @@
       flex: 1;
       display: flex; align-items: center; justify-content: center; gap: 8px;
       padding: 13px 20px;
+      min-height: 48px;
       border-radius: 12px;
       font-size: 14px; font-weight: 600;
       font-family: 'Plus Jakarta Sans', sans-serif;
@@ -184,6 +185,7 @@
     /* Stats row */
     .stats {
       display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+      width: 100%;
       opacity: 0;
       animation: up .6s ease .44s forwards;
     }
@@ -193,6 +195,7 @@
       border-radius: 12px;
       background: rgba(251, 247, 244, 0.03);
       border: 1px solid rgba(251, 247, 244, 0.07);
+      flex: 1;
       min-width: 80px;
     }
     .stat-num {
@@ -274,16 +277,16 @@
       main { padding: 44px 20px 28px; }
 
       .logo-icon { width: 42px; height: 42px; font-size: 20px; border-radius: 12px; }
-      .logo-text  { font-size: clamp(34px, 10vw, 44px); letter-spacing: -1px; }
+      .logo-text  { font-size: clamp(30px, 9vw, 40px); letter-spacing: -1px; }
 
       .tagline { font-size: 11px; letter-spacing: 1.5px; }
       .sub { font-size: 14px; }
 
-      .btns { flex-direction: column; max-width: 290px; }
+      .btns { flex-direction: column; width: 100%; max-width: min(280px, 100%); }
       .btn  { width: 100%; }
 
-      .stats { gap: 8px; }
-      .stat  { padding: 10px 14px; min-width: 72px; }
+      .stats { gap: 8px; width: 100%; max-width: 320px; }
+      .stat  { padding: 10px 14px; flex: 1; min-width: 72px; }
       .stat-num { font-size: 16px; }
 
       footer { padding: 14px 18px 20px; }

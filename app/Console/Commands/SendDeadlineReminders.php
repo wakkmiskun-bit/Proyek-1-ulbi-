@@ -12,11 +12,11 @@ class SendDeadlineReminders extends Command
 {
     protected $signature = 'tasks:send-deadline-reminders';
 
-    protected $description = 'Kirim pengingat WhatsApp H-5 dan H-2 sebelum deadline tugas';
+    protected $description = 'Kirim pengingat WhatsApp H-5, H-2, dan H-0 (hari H) sebelum/saat deadline tugas';
 
     public function handle(WhatsAppService $whatsapp): int
     {
-        $daysList = [5, 2];
+        $daysList = [5, 2, 0];
         $sent = 0;
 
         foreach ($daysList as $daysBefore) {
@@ -40,9 +40,16 @@ class SendDeadlineReminders extends Command
                 }
 
                 $due = $task->deadline?->format('d M Y') ?? '-';
-                $message = "Halo {$task->mahasiswa->nama}! ⏰\n\n"
-                    ."Pengingat TaskMate: tugas \"{$task->title}\" akan deadline dalam {$daysBefore} hari ({$due}).\n"
-                    ."Yuk segera dikerjakan agar tidak telat! 💪";
+                
+                if ($daysBefore === 0) {
+                    $message = "Halo {$task->mahasiswa->nama}! 🚨\n\n"
+                        ."Pemberitahuan TaskMate: Hari ini ({$due}) adalah batas akhir (DEADLINE) pengumpulan tugas \"{$task->title}\".\n"
+                        ."Yuk segera selesaikan dan kumpulkan tugas Anda hari ini agar tidak terlambat! 🚀";
+                } else {
+                    $message = "Halo {$task->mahasiswa->nama}! ⏰\n\n"
+                        ."Pengingat TaskMate: tugas \"{$task->title}\" akan deadline dalam {$daysBefore} hari ({$due}).\n"
+                        ."Yuk segera dikerjakan agar tidak telat! 💪";
+                }
 
                 if ($whatsapp->send($phone, $message)) {
                     TaskReminder::create([

@@ -79,8 +79,10 @@
     .btn-back {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
       padding: 10px 18px;
+      min-height: 38px;
       border-radius: 99px;
       background: rgba(251, 247, 244, 0.04);
       border: 1px solid rgba(251, 247, 244, 0.1);
@@ -107,7 +109,7 @@
       z-index: 1;
       width: 100%;
       max-width: 480px;
-      padding: 80px 24px 40px;
+      padding: 80px clamp(16px, 5vw, 24px) 40px;
       text-align: center;
       opacity: 0;
       animation: fadeInUp 0.6s ease forwards;
@@ -132,7 +134,7 @@
     }
 
     h1 {
-      font-size: 32px;
+      font-size: clamp(22px, 6vw, 32px);
       font-weight: 800;
       letter-spacing: -0.5px;
       margin-bottom: 12px;
@@ -142,7 +144,7 @@
     }
 
     .subtitle {
-      font-size: 14px;
+      font-size: clamp(12.5px, 2vw, 14px);
       color: #a8938e;
       line-height: 1.6;
       margin-bottom: 36px;
@@ -219,6 +221,7 @@
       gap: 8px;
       width: 100%;
       padding: 14px;
+      min-height: 48px;
       border-radius: 14px;
       background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
       color: #fff;
@@ -268,10 +271,10 @@
         padding: 16px;
       }
       main {
-        padding: 60px 16px 30px;
+        padding: 60px clamp(12px, 4vw, 16px) 30px;
       }
       h1 {
-        font-size: 26px;
+        font-size: clamp(20px, 6vw, 26px);
       }
       .contact-card {
         padding: 20px;
