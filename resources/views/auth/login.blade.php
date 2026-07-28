@@ -62,7 +62,7 @@
                     <div class="form-group">
                         <div class="flex items-center justify-between mb-2">
                             <label for="password" class="text-xs font-bold uppercase tracking-widest" style="color: #705953;">Password</label>
-                            @if (Route::has('password.request')) <a href="{{ route('password.request') }}" class="text-xs font-semibold" style="color: #e91e63;">Lupa password?</a> @endif
+                            <a href="https://wa.me/{{ preg_replace('/\D/', '', env('ADMIN_WHATSAPP', '6285191163819')) }}?text=Halo%20Admin%20TaskMate%2C%20saya%20butuh%20bantuan%20terkait%20platform%20TaskMate." target="_blank" class="text-xs font-semibold" style="color: #e91e63;">Bantuan</a>
                         </div>
                         <div class="relative">
                             <i class="ti ti-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-lg" style="color: #a8938e;"></i>
