@@ -148,6 +148,7 @@ async function apiFetch(url, options = {}) {
 function taskPayload(data) {
   return {
     title: data.title,
+    mata_kuliah: data.mata_kuliah || null,
     description: data.desc || '',
     status: data.col,
     priority: data.priority,
@@ -157,12 +158,14 @@ function taskPayload(data) {
 }
 
 // ═══════════════════════════════════════════
-//  BUILD ADD-BOX for each column
+//  BUILD ADD-BOX — only for TO DO column
 // ═══════════════════════════════════════════
-COLS.forEach(col => {
-  const box = document.getElementById('addbox-'+col);
+const TODO_BOX_COL = 'todo';
+const box = document.getElementById('addbox-' + TODO_BOX_COL);
+if (box) {
   box.innerHTML = `
     <input class="ab-title" placeholder="Nama task..." style="margin-bottom:8px">
+    <input class="ab-matkul" placeholder="Mata kuliah (opsional)" style="margin-bottom:8px">
     <div class="priority-row">
       <div class="p-opt high" data-p="high">🔴 Tinggi</div>
       <div class="p-opt medium selected" data-p="medium">🟡 Sedang</div>
@@ -181,7 +184,7 @@ COLS.forEach(col => {
       opt.classList.add('selected');
     };
   });
-});
+}
 
 // ═══════════════════════════════════════════
 //  OPEN / CLOSE ADD-BOX
@@ -199,13 +202,15 @@ document.querySelectorAll('.add-btn').forEach(btn => {
       if (!title) return;
       const priority = box.querySelector('.p-opt.selected')?.dataset.p || 'medium';
       const due = box.querySelector('.ab-due').value;
+      const matkul = box.querySelector('.ab-matkul').value.trim();
       const saveBtn = box.querySelector('.ab-save');
       saveBtn.disabled = true;
       try {
-        await createCard(col, title, priority, due);
+        await createCard(col, title, priority, due, [], matkul);
         box.style.display = 'none';
         box.querySelector('.ab-title').value = '';
         box.querySelector('.ab-due').value = '';
+        box.querySelector('.ab-matkul').value = '';
       } finally {
         saveBtn.disabled = false;
       }
@@ -226,12 +231,12 @@ document.querySelectorAll('.add-btn').forEach(btn => {
 // ═══════════════════════════════════════════
 //  CREATE CARD
 // ═══════════════════════════════════════════
-async function createCard(col, title, priority='medium', due='', checklist=[]) {
+async function createCard(col, title, priority='medium', due='', checklist=[], mata_kuliah='') {
   const targetCol = 'todo';
   const saved = await apiFetch(taskCreateUrl(), {
     method: 'POST',
     body: JSON.stringify({
-      ...taskPayload({ title, desc: '', priority, due, checklist, col: targetCol }),
+      ...taskPayload({ title, mata_kuliah: mata_kuliah || null, desc: '', priority, due, checklist, col: targetCol }),
       status: targetCol,
     }),
   });
@@ -249,6 +254,7 @@ function mountCard(task) {
   const data = {
     id: task.id,
     title: task.title,
+    mata_kuliah: task.mata_kuliah || '',
     desc: task.description || '',
     priority: task.priority,
     due: task.due_date ? String(task.due_date).slice(0, 10) : '',
@@ -520,6 +526,8 @@ function openModal(card) {
   activePriority = data.priority;
 
   document.getElementById('mTitle').value = data.title;
+  const mkEl = document.getElementById('mMataKuliah');
+  if (mkEl) mkEl.value = data.mata_kuliah || '';
   document.getElementById('mDesc').value = data.desc;
   document.getElementById('mDue').value = data.due || '';
 
@@ -564,6 +572,8 @@ document.getElementById('modalSaveBtn').onclick = async () => {
   const newTitle = document.getElementById('mTitle').value.trim();
   if (!newTitle) { toast('Judul tidak boleh kosong', '⚠️'); return; }
   data.title = newTitle;
+  const mkEl = document.getElementById('mMataKuliah');
+  data.mata_kuliah = mkEl ? mkEl.value.trim() || null : null;
   data.desc = document.getElementById('mDesc').value.trim();
   data.priority = activePriority;
   data.due = document.getElementById('mDue').value;

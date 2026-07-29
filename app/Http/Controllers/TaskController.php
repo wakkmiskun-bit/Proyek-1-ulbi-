@@ -111,6 +111,7 @@ class TaskController extends Controller
     {
         $rules = [
             'title' => [$partial ? 'sometimes' : 'required', 'string', 'max:255'],
+            'mata_kuliah' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => [$partial ? 'sometimes' : 'required', Rule::in(['todo', 'doing', 'review', 'done'])],
             'priority' => [$partial ? 'sometimes' : 'required', Rule::in(['high', 'medium', 'low'])],

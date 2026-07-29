@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SupportController;
 use App\Http\Controllers\TaskController;
 use App\Models\Mahasiswa;
 use App\Models\Task;
@@ -46,14 +47,32 @@ Route::get('/dashboard', function () {
 
     $activities = $mahasiswa->activities()->latest()->take(5)->get();
 
+    // Hitung progres per mata kuliah (task yang punya mata_kuliah)
+    $subjectProgress = $mahasiswa->tasks()
+        ->whereNotNull('mata_kuliah')
+        ->get()
+        ->groupBy('mata_kuliah')
+        ->map(function ($tasks) {
+            $total = $tasks->count();
+            $done  = $tasks->where('status', 'done')->count();
+            return [
+                'nama'       => $tasks->first()->mata_kuliah,
+                'total'      => $total,
+                'done'       => $done,
+                'percentage' => $total > 0 ? round(($done / $total) * 100) : 0,
+            ];
+        })
+        ->values();
+
     return view('dashboard', [
-        'tasks' => $tasks,
-        'totalTasks' => $totalTasks,
-        'doneCount' => $doneCount,
-        'activeCount' => $activeCount,
-        'completionRate' => $completionRate,
-        'upcomingTasks' => $upcomingTasks,
-        'activities' => $activities,
+        'tasks'           => $tasks,
+        'totalTasks'      => $totalTasks,
+        'doneCount'       => $doneCount,
+        'activeCount'     => $activeCount,
+        'completionRate'  => $completionRate,
+        'upcomingTasks'   => $upcomingTasks,
+        'activities'      => $activities,
+        'subjectProgress' => $subjectProgress,
     ]);
 })->middleware(['auth:web'])->name('dashboard');
 
@@ -88,17 +107,18 @@ Route::middleware(['auth:admin', 'admin'])->prefix('admin')->name('admin.')->gro
     Route::post('/mahasiswas/{mahasiswa}/tasks', [AdminDashboardController::class, 'storeTask'])->name('mahasiswas.tasks.store');
     Route::put('/tasks/{task}', [AdminDashboardController::class, 'updateTask'])->name('tasks.update');
     Route::delete('/tasks/{task}', [AdminDashboardController::class, 'destroyTask'])->name('tasks.destroy');
+    // Bantuan / Support Tickets
+    Route::get('/bantuan', [SupportController::class, 'adminIndex'])->name('support.index');
+    Route::patch('/bantuan/{ticket}/status', [SupportController::class, 'adminUpdateStatus'])->name('support.status');
+    Route::delete('/bantuan/{ticket}', [SupportController::class, 'adminDestroy'])->name('support.destroy');
 });
 
 Route::get('/welcome', function () {
     return view('welcome');
 })->middleware(['auth:web']);
 
-Route::get('/bantuan', function () {
-    $phone = env('ADMIN_WHATSAPP', '6285191163819');
-    $phone = preg_replace('/\D/', '', $phone);
-    return view('bantuan', ['adminPhone' => $phone]);
-})->name('bantuan');
+Route::get('/bantuan', [SupportController::class, 'create'])->name('bantuan');
+Route::post('/bantuan', [SupportController::class, 'store'])->name('bantuan.store');
 
 require __DIR__.'/auth.php';
 

@@ -15,6 +15,7 @@ class Task extends Model
     protected $fillable = [
         'mahasiswa_id',
         'title',
+        'mata_kuliah',
         'description',
         'status',
         'deadline',

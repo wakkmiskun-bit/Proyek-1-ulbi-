@@ -837,6 +837,11 @@
         <i class="fa-solid fa-shield-halved" style="margin-right: 12px; font-size: 16px;"></i>
         <span>Kelola Admin</span>
       </button>
+      <button class="admin-sidebar-item" data-nav="bantuan" id="navBantuan">
+        <i class="fa-solid fa-headset" style="margin-right: 12px; font-size: 16px;"></i>
+        <span>User Butuh Bantuan</span>
+        <span id="badgeBantuan" style="margin-left:auto; background:#e91e63; color:#fff; font-size:10px; font-weight:800; padding:2px 7px; border-radius:99px; display:none;">0</span>
+      </button>
       <button class="admin-sidebar-item" onclick="window.location.href='{{ route('admin.mahasiswas.create') }}'">
         <i class="fa-solid fa-user-plus" style="margin-right: 12px; font-size: 16px;"></i>
         <span>Tambah Mahasiswa</span>
@@ -1034,6 +1039,41 @@
           </div>
         </section>
       </div>
+
+      <!-- ══════════ Section Bantuan ══════════ -->
+      <div id="section-bantuan" class="admin-section" style="display: none;">
+
+        <nav class="breadcrumb">
+          <a href="#">Dashboard</a><span>/</span>
+          <a href="#" style="color: var(--text-main);">User Butuh Bantuan</a>
+        </nav>
+
+        <div class="header-row">
+          <h1 class="page-title">User Butuh Bantuan</h1>
+          <div class="header-actions">
+            <select id="filterStatus" class="search-input" style="max-width:160px; cursor:pointer;">
+              <option value="">Semua Status</option>
+              <option value="baru">Baru</option>
+              <option value="dibaca">Dibaca</option>
+              <option value="dijawab">Dijawab</option>
+            </select>
+          </div>
+        </div>
+
+        <section class="admin-panel">
+          <div class="panel-head">
+            <h2>Daftar Permintaan Bantuan</h2>
+            <span id="ticketCount" style="font-size:13px; color:var(--text-muted);">Memuat...</span>
+          </div>
+          <div id="ticketList" style="padding: 8px 0;">
+            <div style="text-align:center; padding:48px 0; color:var(--text-muted);">
+              <i class="fa-solid fa-spinner fa-spin" style="font-size:24px; margin-bottom:10px; display:block;"></i>
+              Memuat data tiket bantuan...
+            </div>
+          </div>
+        </section>
+      </div>
+
     </main>
   </div>
 
@@ -1201,5 +1241,171 @@
 
   <div id="admin-toast-wrap"></div>
 </div>
+
+<script>
+// ═══════════ BANTUAN / SUPPORT TICKETS ═══════════
+let allTickets = [];
+
+async function loadTickets() {
+  try {
+    const res = await fetch('{{ route('admin.support.index') }}', {
+      headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+    });
+    allTickets = await res.json();
+    renderTickets(allTickets);
+    updateBadge(allTickets);
+  } catch(e) {
+    document.getElementById('ticketList').innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data tiket.</div>';
+  }
+}
+
+function updateBadge(tickets) {
+  const badge = document.getElementById('badgeBantuan');
+  const baru = tickets.filter(t => t.status === 'baru').length;
+  if (baru > 0) { badge.style.display = 'inline-block'; badge.textContent = baru; }
+  else { badge.style.display = 'none'; }
+}
+
+function renderTickets(tickets) {
+  const list = document.getElementById('ticketList');
+  const count = document.getElementById('ticketCount');
+  const filter = document.getElementById('filterStatus')?.value || '';
+  const filtered = filter ? tickets.filter(t => t.status === filter) : tickets;
+
+  count.textContent = `${filtered.length} tiket ditemukan`;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div style="text-align:center;padding:56px 0;color:#94a3b8;">
+      <i class="fa-solid fa-inbox" style="font-size:40px;margin-bottom:12px;display:block;opacity:.4;"></i>
+      Belum ada permintaan bantuan.
+    </div>`;
+    return;
+  }
+
+  const statusColor = { baru: '#e91e63', dibaca: '#f59e0b', dijawab: '#10b981' };
+  const statusBg    = { baru: 'rgba(233,30,99,0.1)', dibaca: 'rgba(245,158,11,0.1)', dijawab: 'rgba(16,185,129,0.1)' };
+
+  list.innerHTML = filtered.map(t => `
+    <div class="ticket-card" id="ticket-${t.id}" style="
+      border: 1px solid #e2e8f0; border-radius: 14px; padding: 22px 24px;
+      margin-bottom: 14px; background: #fff; transition: box-shadow .2s;
+      position: relative; overflow: hidden;
+    ">
+      <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:${statusColor[t.status]};border-radius:14px 0 0 14px;"></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+            <strong style="font-size:15px;color:#1e293b;">${esc(t.nama)}</strong>
+            ${t.nim ? `<span style="font-size:11px;background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:99px;">NIM: ${esc(t.nim)}</span>` : ''}
+            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${statusBg[t.status]};color:${statusColor[t.status]};">
+              ${t.status_label}
+            </span>
+          </div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:4px;">
+            <i class="fa-solid fa-tag" style="margin-right:5px;color:#e91e63;"></i><strong>${esc(t.perihal)}</strong>
+            &nbsp;&bull;&nbsp; <i class="fa-regular fa-clock" style="margin-right:3px;"></i>${t.time_human}
+          </div>
+          <div style="font-size:13px;color:#475569;margin:10px 0;line-height:1.6;background:#f8fafc;padding:12px 14px;border-radius:10px;border-left:3px solid #e2e8f0;">
+            ${esc(t.pesan)}
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12.5px;color:#94a3b8;">
+            <span><i class="fa-regular fa-envelope" style="margin-right:4px;"></i>${esc(t.email)}</span>
+            ${t.whatsapp ? `<span><i class="fa-brands fa-whatsapp" style="margin-right:4px;color:#25D366;"></i>${esc(t.whatsapp)}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:150px;align-items:flex-end;">
+          <a href="mailto:${esc(t.email)}?subject=Re: ${encodeURIComponent(t.perihal)}&body=Halo ${encodeURIComponent(t.nama)},%0A%0A"
+            style="display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;">
+            <i class="fa-regular fa-envelope"></i> Balas Email
+          </a>
+          ${t.whatsapp_url ? `
+          <a href="${t.whatsapp_url}?text=${encodeURIComponent('Halo '+t.nama+', kami dari Admin TaskMate merespons pertanyaan Anda terkait: '+t.perihal)}"
+            target="_blank"
+            style="display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:8px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);color:#16a34a;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;">
+            <i class="fa-brands fa-whatsapp"></i> Balas WA
+          </a>` : ''}
+          <select onchange="changeStatus(${t.id}, this.value)"
+            style="padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#1e293b;font-size:12px;cursor:pointer;font-family:inherit;">
+            <option value="baru"    ${t.status==='baru'    ?'selected':''}>Baru</option>
+            <option value="dibaca"  ${t.status==='dibaca'  ?'selected':''}>Dibaca</option>
+            <option value="dijawab" ${t.status==='dijawab' ?'selected':''}>Dijawab</option>
+          </select>
+          <button onclick="deleteTicket(${t.id})"
+            style="padding:8px 14px;border-radius:8px;border:1px solid #fecaca;background:#fff5f5;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">
+            <i class="fa-solid fa-trash"></i> Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function changeStatus(id, status) {
+  try {
+    await fetch(`/admin/bantuan/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+      body: JSON.stringify({ status })
+    });
+    const t = allTickets.find(x => x.id === id);
+    if (t) t.status = status;
+    const labels = { baru:'Baru', dibaca:'Dibaca', dijawab:'Dijawab' };
+    if (t) t.status_label = labels[status];
+    updateBadge(allTickets);
+    adminToast('Status tiket diperbarui ✅');
+  } catch(e) { adminToast('Gagal memperbarui status ⚠️', true); }
+}
+
+async function deleteTicket(id) {
+  if (!confirm('Hapus tiket ini?')) return;
+  try {
+    await fetch(`/admin/bantuan/${id}`, {
+      method: 'DELETE',
+      headers: { 'Accept':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+    });
+    allTickets = allTickets.filter(t => t.id !== id);
+    renderTickets(allTickets);
+    updateBadge(allTickets);
+    adminToast('Tiket dihapus 🗑️');
+  } catch(e) { adminToast('Gagal menghapus tiket ⚠️', true); }
+}
+
+function adminToast(msg, isErr = false) {
+  const wrap = document.getElementById('admin-toast-wrap');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.style.cssText = `padding:12px 20px;background:${isErr?'#ef4444':'#1e293b'};color:#fff;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// Filter
+document.getElementById('filterStatus')?.addEventListener('change', () => renderTickets(allTickets));
+
+// Hook into existing sidebar nav switcher — bantuan section
+document.querySelectorAll('[data-nav]').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const nav = this.dataset.nav;
+    document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+    const sec = document.getElementById('section-' + nav);
+    if (sec) sec.style.display = '';
+    document.querySelectorAll('[data-nav]').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    if (nav === 'bantuan') loadTickets();
+  });
+});
+
+// Auto load badge on page load
+fetch('{{ route('admin.support.index') }}', { headers: { 'Accept':'application/json' } })
+  .then(r => r.json()).then(tickets => updateBadge(tickets)).catch(()=>{});
+</script>
+
 </body>
 </html>
+

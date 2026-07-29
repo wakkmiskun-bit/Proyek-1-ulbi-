@@ -200,22 +200,23 @@
         <div class="dashboard-panel panel-subjects">
           <h3><i class="fa-solid fa-chart-line" style="margin-right: 8px;"></i> Progres Mata Kuliah</h3>
           <div class="subjects-list">
-            <div class="subject-item">
-              <span class="subject-name">Sistem Tertanam (80%)</span>
-              <div class="subject-bar"><div class="subject-fill" style="width: 80%"></div></div>
-            </div>
-            <div class="subject-item">
-              <span class="subject-name">Kecerdasan Buatan (90%)</span>
-              <div class="subject-bar"><div class="subject-fill" style="width: 90%"></div></div>
-            </div>
-            <div class="subject-item">
-              <span class="subject-name">Rekayasa Perangkat Lunak (75%)</span>
-              <div class="subject-bar"><div class="subject-fill" style="width: 75%"></div></div>
-            </div>
-            <div class="subject-item">
-              <span class="subject-name">Jaringan Komputer (85%)</span>
-              <div class="subject-bar"><div class="subject-fill" style="width: 85%"></div></div>
-            </div>
+            @forelse($subjectProgress as $subject)
+              <div class="subject-item">
+                <div class="subject-name-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <span class="subject-name">{{ $subject['nama'] }}</span>
+                  <span class="subject-pct" style="font-size:12px; font-weight:700; color:var(--accent)">{{ $subject['percentage'] }}%</span>
+                </div>
+                <div class="subject-bar">
+                  <div class="subject-fill" style="width: {{ $subject['percentage'] }}%"></div>
+                </div>
+                <span style="font-size:11px; color:var(--text3)">{{ $subject['done'] }} / {{ $subject['total'] }} tugas selesai</span>
+              </div>
+            @empty
+              <div class="empty-state-dashboard" style="text-align:center; padding: 24px 0;">
+                <i class="fa-solid fa-book-open" style="font-size:32px; color:var(--text3); margin-bottom:10px; display:block;"></i>
+                <p style="color:var(--text2); font-size:13px; margin:0;">Belum ada tugas dengan mata kuliah.<br>Tambahkan <strong>Mata Kuliah</strong> saat membuat tugas baru.</p>
+              </div>
+            @endforelse
           </div>
         </div>
       </div>
@@ -282,10 +283,6 @@
             </div>
             <div class="list-body">
               <div class="cards" id="cards-doing"></div>
-              <button class="add-btn" data-col="doing">
-                <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Tambah Task
-              </button>
-              <div class="add-box" id="addbox-doing"></div>
             </div>
             <div class="col-foot"><div class="col-prog-bar"><div class="col-prog-fill"></div></div></div>
           </div>
@@ -301,10 +298,6 @@
             </div>
             <div class="list-body">
               <div class="cards" id="cards-review"></div>
-              <button class="add-btn" data-col="review">
-                <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Tambah Task
-              </button>
-              <div class="add-box" id="addbox-review"></div>
             </div>
             <div class="col-foot"><div class="col-prog-bar"><div class="col-prog-fill"></div></div></div>
           </div>
@@ -320,10 +313,6 @@
             </div>
             <div class="list-body">
               <div class="cards" id="cards-done"></div>
-              <button class="add-btn" data-col="done">
-                <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Tambah Task
-              </button>
-              <div class="add-box" id="addbox-done"></div>
             </div>
             <div class="col-foot"><div class="col-prog-bar"><div class="col-prog-fill"></div></div></div>
           </div>
@@ -448,6 +437,10 @@
         <div class="form-group">
           <label class="form-label">Judul</label>
           <input id="mTitle" class="form-ctrl" placeholder="Nama task...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mata Kuliah</label>
+          <input id="mMataKuliah" class="form-ctrl" placeholder="Contoh: Basis Data, Pemrograman Web...">
         </div>
         <div class="form-group">
           <label class="form-label">Deskripsi</label>
