@@ -13,7 +13,7 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@gmail.com'],
             [
                 'nama' => 'Administrator TaskMate',
-                'password' => 'admin123',
+                'password' => 'admin12345',
             ]
         );
     }
