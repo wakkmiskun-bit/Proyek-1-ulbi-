@@ -29,16 +29,38 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $request->only('email')
+        $mahasiswa = \App\Models\Mahasiswa::where('email', $request->email)->first();
+        if (!$mahasiswa) {
+            return back()->withErrors(['email' => 'Email tidak ditemukan.']);
+        }
+
+        // Generate 6 digit OTP
+        $otp = sprintf("%06d", mt_rand(1, 999999));
+
+        // Save to password_reset_tokens table
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $mahasiswa->email],
+            [
+                'token' => \Illuminate\Support\Facades\Hash::make($otp),
+                'created_at' => now()
+            ]
         );
 
-        return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                            ->withErrors(['email' => __($status)]);
+        // Send via WhatsApp
+        $message = "Halo *{$mahasiswa->nama}*,\n\n";
+        $message .= "Berikut adalah KODE RESET PASSWORD Anda:\n\n";
+        $message .= "*{$otp}*\n\n";
+        $message .= "Masukkan kode OTP ini di aplikasi untuk membuat password baru. Kode ini berlaku selama 60 menit.\n\n";
+        $message .= "Jika Anda tidak meminta reset password, abaikan pesan ini.\n\n";
+        $message .= "_Sistem Otomatis TaskMate_";
+
+        if (!empty($mahasiswa->phone)) {
+            $waService = app(\App\Services\WhatsAppService::class);
+            $waService->send($mahasiswa->phone, $message);
+        } else {
+            \Illuminate\Support\Facades\Log::warning("OTP WA tidak terkirim, no phone for user: {$mahasiswa->email}. OTP: {$otp}");
+        }
+
+        return redirect()->route('password.verify')->with('reset_email', $mahasiswa->email);
     }
 }
