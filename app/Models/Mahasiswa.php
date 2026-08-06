@@ -23,6 +23,8 @@ class Mahasiswa extends Authenticatable
         'foto',
         'universitas',
         'semester',
+        'points',
+        'level',
     ];
 
     protected $hidden = [
@@ -32,11 +34,15 @@ class Mahasiswa extends Authenticatable
 
     protected $casts = [
         'password' => 'hashed',
+        'points' => 'integer',
+        'level' => 'integer',
     ];
 
     protected $appends = [
         'name',
         'photo_url',
+        'level_title',
+        'next_level_points',
     ];
 
     public function tasks(): HasMany
@@ -67,6 +73,51 @@ class Mahasiswa extends Authenticatable
     public function getPhotoUrlAttribute(): ?string
     {
         return $this->foto ? asset('storage/'.$this->foto) : null;
+    }
+
+    public function getLevelTitleAttribute(): string
+    {
+        $pts = $this->points ?? 0;
+        if ($pts >= 350) return 'Level 5: Legenda ULBI 👑';
+        if ($pts >= 200) return 'Level 4: Master Ambis 🚀';
+        if ($pts >= 100) return 'Level 3: Mahasiswa Rajin ⭐️';
+        if ($pts >= 50) return 'Level 2: Pejuang Tugas 💪';
+        return 'Level 1: Pemula 🌱';
+    }
+
+    public function getNextLevelPointsAttribute(): int
+    {
+        $pts = $this->points ?? 0;
+        if ($pts >= 350) return 500;
+        if ($pts >= 200) return 350;
+        if ($pts >= 100) return 200;
+        if ($pts >= 50) return 100;
+        return 50;
+    }
+
+    public function addPoints(int $addedPoints): array
+    {
+        $oldLevel = $this->level ?? 1;
+        $this->points = ($this->points ?? 0) + $addedPoints;
+        
+        $pts = $this->points;
+        if ($pts >= 350) $newLevel = 5;
+        elseif ($pts >= 200) $newLevel = 4;
+        elseif ($pts >= 100) $newLevel = 3;
+        elseif ($pts >= 50) $newLevel = 2;
+        else $newLevel = 1;
+
+        $leveledUp = $newLevel > $oldLevel;
+        $this->level = $newLevel;
+        $this->save();
+
+        return [
+            'added_points' => $addedPoints,
+            'total_points' => $this->points,
+            'level' => $this->level,
+            'level_title' => $this->level_title,
+            'leveled_up' => $leveledUp,
+        ];
     }
 
     public static function normalizePhone(string $phone): string

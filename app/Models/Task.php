@@ -20,13 +20,17 @@ class Task extends Model
         'status',
         'deadline',
         'priority',
+        'tag',
         'checklist',
+        'attachments',
+        'assigned_to',
         'sort_order',
     ];
 
     protected $casts = [
         'deadline' => 'date',
         'checklist' => 'array',
+        'attachments' => 'array',
     ];
 
     protected $appends = [

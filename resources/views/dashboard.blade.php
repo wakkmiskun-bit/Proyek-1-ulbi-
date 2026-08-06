@@ -27,6 +27,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   @vite(['resources/css/styles.css', 'resources/js/script.js'])
 </head>
 <body>
@@ -127,6 +128,31 @@
         </div>
       </div>
 
+      <!-- Gamification Rewards Banner -->
+      <div class="gamification-banner">
+        <div class="g-row">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="g-level-badge" id="gLevelTitle">{{ auth()->user()->level_title }}</span>
+              <span style="font-size:12px; opacity:0.85;">Gamifikasi Rewards</span>
+            </div>
+            <div style="font-size:14px; font-weight:700;">Total Poin: <span id="gUserPoints" style="color:#f59e0b; font-size:18px;">{{ auth()->user()->points ?? 0 }}</span> XP</div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:12px; opacity:0.85;">Target Level Berikutnya</span>
+            <div style="font-size:13px; font-weight:700;"><span id="gCurrentPts">{{ auth()->user()->points ?? 0 }}</span> / <span id="gNextPts">{{ auth()->user()->next_level_points }}</span> XP</div>
+          </div>
+        </div>
+        @php
+          $pts = auth()->user()->points ?? 0;
+          $target = auth()->user()->next_level_points;
+          $xpPct = min(100, round(($pts / max(1, $target)) * 100));
+        @endphp
+        <div class="xp-progress-bar">
+          <div class="xp-progress-fill" id="gXpFill" style="width: {{ $xpPct }}%;"></div>
+        </div>
+      </div>
+
       <!-- Stats Grid -->
       <div class="dashboard-stats-row">
         <!-- Card 1: Active Tasks -->
@@ -188,10 +214,22 @@
                 <div class="task-info-right">
                   <span class="task-due-text">Deadline: {{ $task->deadline->format('d M') }}</span>
                   <span class="task-due-badge {{ $badgeClass }}">{{ $badgeText }}</span>
+                  <!-- WhatsApp Reminder Trigger -->
+                  <a href="https://wa.me/{{ auth()->user()->phone ? \App\Models\Mahasiswa::normalizePhone(auth()->user()->phone) : '' }}?text={{ urlencode('Reminder TaskMate: Tugas "'.$task->title.'" memiliki deadline pada '.$task->deadline->format('d M Y')) }}" target="_blank" onclick="event.stopPropagation()" class="task-due-badge" style="background:#25D366; color:#fff; text-decoration:none;" title="Kirim Pengingat WhatsApp"><i class="fa-brands fa-whatsapp"></i> WA</a>
                 </div>
               </div>
             @empty
-              <div class="empty-state-dashboard">Tidak ada tugas mendekati deadline.</div>
+              <div class="empty-state-wrapper">
+                <svg class="empty-state-illustration" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="100" cy="100" r="80" fill="#FCE7F3" opacity="0.6"/>
+                  <path d="M60 130C60 130 80 150 100 150C120 150 140 130 140 130" stroke="#EC4899" stroke-width="6" stroke-linecap="round"/>
+                  <circle cx="75" cy="85" r="8" fill="#DB2777"/>
+                  <circle cx="125" cy="85" r="8" fill="#DB2777"/>
+                  <path d="M40 95L80 135L160 55" stroke="#10B981" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="empty-state-title">Hore! Semua tugas mendekati deadline sudah selesai 🎉</div>
+                <div class="empty-state-sub">Tidak ada tugas mendekati tenggat. Waktunya istirahat atau menambah tugas baru!</div>
+              </div>
             @endforelse
           </div>
         </div>
@@ -212,11 +250,53 @@
                 <span style="font-size:11px; color:var(--text3)">{{ $subject['done'] }} / {{ $subject['total'] }} tugas selesai</span>
               </div>
             @empty
-              <div class="empty-state-dashboard" style="text-align:center; padding: 24px 0;">
-                <i class="fa-solid fa-book-open" style="font-size:32px; color:var(--text3); margin-bottom:10px; display:block;"></i>
-                <p style="color:var(--text2); font-size:13px; margin:0;">Belum ada tugas dengan mata kuliah.<br>Tambahkan <strong>Mata Kuliah</strong> saat membuat tugas baru.</p>
+              <div class="empty-state-wrapper">
+                <i class="fa-solid fa-book-open" style="font-size:40px; color:var(--text3); margin-bottom:12px;"></i>
+                <div class="empty-state-title">Belum ada Mata Kuliah</div>
+                <div class="empty-state-sub">Tambahkan nama <strong>Mata Kuliah</strong> saat membuat tugas untuk memantau progres per mata kuliah.</div>
               </div>
             @endforelse
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Productivity Chart & Pomodoro Timer Row -->
+      <div class="dashboard-bottom-grid" style="margin-top: 24px;">
+        <!-- Left: Productivity Chart (ApexCharts) -->
+        <div class="dashboard-panel panel-chart">
+          <h3><i class="fa-solid fa-chart-column" style="margin-right: 8px; color:#e91e63;"></i> Produktivitas Belajar Mingguan</h3>
+          <p style="color:var(--text2); font-size:12px; margin-bottom:12px;">Grafik penyelesaian tugas per hari (Senin - Minggu)</p>
+          <div id="productivityChart" style="min-height: 250px;"></div>
+        </div>
+
+        <!-- Right: Pomodoro Timer Widget -->
+        <div class="dashboard-panel panel-pomodoro">
+          <div class="pomodoro-header">
+            <h3 style="margin:0;"><i class="fa-solid fa-stopwatch" style="margin-right:8px; color:#e91e63;"></i> Pomodoro Fokus Belajar</h3>
+            <span class="btn-pomo-mode active" id="pomoStateBadge">Belajar (25m)</span>
+          </div>
+          
+          <div class="pomodoro-timer-display" id="pomoTimeDisplay">25:00</div>
+          
+          <div style="margin-bottom:12px;">
+            <label style="font-size:11px; font-weight:700; color:var(--text2); display:block; margin-bottom:4px;">Tautkan dengan Tugas Aktif:</label>
+            <select id="pomoTaskSelect" class="form-ctrl" style="font-size:12px; padding:6px 10px;">
+              <option value="">-- Tanpa Tautan (Fokus Umum) --</option>
+              @foreach($tasks->where('status', '!=', 'done') as $t)
+                <option value="{{ $t->id }}">{{ $t->title }}</option>
+              @endforeach
+            </select>
+          </div>
+
+          <div class="pomodoro-controls">
+            <button class="btn-pomo btn-pomo-primary" id="pomoStartBtn"><i class="fa-solid fa-play"></i> Mulai Fokus</button>
+            <button class="btn-pomo btn-pomo-secondary" id="pomoResetBtn"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+          </div>
+          
+          <div style="display:flex; justify-content:center; gap:8px;">
+            <button class="btn-pomo-mode active" data-pomo-mode="focus">25m Fokus</button>
+            <button class="btn-pomo-mode" data-pomo-mode="shortBreak">5m Istirahat</button>
+            <button class="btn-pomo-mode" data-pomo-mode="longBreak">15m Istirahat</button>
           </div>
         </div>
       </div>
@@ -324,10 +404,20 @@
     <!-- ── TAB SECTION 3: KALENDER ── -->
     <section id="tab-calendar" class="student-tab-section">
       <div class="calendar-wrapper">
-        <div class="calendar-header-row">
-          <button id="prevMonthBtn" class="calendar-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
-          <h2 id="calendarMonthTitle">Juli 2026</h2>
-          <button id="nextMonthBtn" class="calendar-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="calendar-header-row" style="flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button id="prevMonthBtn" class="calendar-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <h2 id="calendarMonthTitle" style="margin:0;">Juli 2026</h2>
+            <button id="nextMonthBtn" class="calendar-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <a href="{{ route('tasks.export-ics') }}" class="btn-primary" style="padding:8px 14px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-download"></i> Unduh .ics (HP/Laptop)
+            </a>
+            <button id="syncGoogleCalBtn" class="btn-ghost" style="padding:8px 14px; font-size:12px; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border);">
+              <i class="fa-brands fa-google"></i> Sync Google Calendar
+            </button>
+          </div>
         </div>
         <div class="calendar-grid-header">
           <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
@@ -342,7 +432,16 @@
         <h3><i class="fa-solid fa-bell" style="color:#e91e63; margin-right:8px;"></i> Pusat Notifikasi & Pengingat</h3>
         <p style="color:var(--text2); font-size:14px; margin-bottom:20px;">Daftar peringatan otomatis berdasarkan tenggat waktu tugas Anda yang tersimpan di sistem.</p>
         <div class="notifications-feed-list" id="notificationsFeed">
-          <div class="empty-state-dashboard">Memuat data pengingat...</div>
+          <div class="skeleton-card">
+            <div class="skeleton-box" style="height: 18px; width: 40%;"></div>
+            <div class="skeleton-box" style="height: 14px; width: 70%;"></div>
+            <div class="skeleton-box" style="height: 12px; width: 30%;"></div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-box" style="height: 18px; width: 45%;"></div>
+            <div class="skeleton-box" style="height: 14px; width: 65%;"></div>
+            <div class="skeleton-box" style="height: 12px; width: 25%;"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -443,6 +542,17 @@
           <input id="mMataKuliah" class="form-ctrl" placeholder="Contoh: Basis Data, Pemrograman Web...">
         </div>
         <div class="form-group">
+          <label class="form-label">Label / Tag Kategori</label>
+          <select id="mTag" class="form-ctrl">
+            <option value="">-- Tanpa Tag --</option>
+            <option value="Ujian">🔴 Ujian</option>
+            <option value="Tugas Kelompok">🔵 Tugas Kelompok</option>
+            <option value="PR">🟢 PR (Pekerjaan Rumah)</option>
+            <option value="Proyek">🟣 Proyek</option>
+            <option value="Kuis">🟡 Kuis</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">Deskripsi</label>
           <textarea id="mDesc" class="form-ctrl" rows="3" placeholder="Detail tambahan..."></textarea>
         </div>
@@ -457,6 +567,14 @@
         <div class="form-group">
           <label class="form-label">Tenggat Waktu</label>
           <input id="mDue" class="form-ctrl" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Penugasan Kelompok (NIM / Email Teman)</label>
+          <input id="mAssignedTo" class="form-ctrl" placeholder="Contoh: 714220032 atau teman@ulbi.ac.id">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lampiran Berkas / Link Jurnal (PDF, Word, Drive)</label>
+          <input id="mAttachmentUrl" class="form-ctrl" placeholder="Contoh: https://drive.google.com/... atau link jurnal">
         </div>
         <div class="form-group">
           <label class="form-label">Pindahkan ke Kolom</label>

@@ -82,6 +82,7 @@ Route::middleware('auth:web')->group(function () {
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
     Route::get('/tasks-reminders', [TaskController::class, 'getReminders']);
+    Route::get('/tasks/export-ics', [TaskController::class, 'exportIcs'])->name('tasks.export-ics');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

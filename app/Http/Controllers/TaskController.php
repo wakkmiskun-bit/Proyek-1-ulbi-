@@ -27,11 +27,15 @@ class TaskController extends Controller
 
         $payload = [
             'title' => $validated['title'],
+            'mata_kuliah' => $validated['mata_kuliah'] ?? null,
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'],
             'priority' => $validated['priority'],
+            'tag' => $validated['tag'] ?? null,
             'deadline' => $validated['deadline'] ?? null,
             'checklist' => $validated['checklist'] ?? [],
+            'attachments' => $validated['attachments'] ?? [],
+            'assigned_to' => $validated['assigned_to'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
         ];
 
@@ -54,7 +58,35 @@ class TaskController extends Controller
         $task->update($validated);
         ActivityLogger::logTaskUpdated($task->fresh(), $previousStatus);
 
-        return response()->json($task->fresh());
+        $reward = null;
+        $freshTask = $task->fresh();
+
+        // Gamification points award when marking task as done
+        if ($previousStatus !== 'done' && $freshTask->status === 'done') {
+            $user = $request->user('web');
+            if ($user) {
+                $pts = 10;
+                $bonusMsg = '+10 Poin: Tugas selesai!';
+
+                if ($freshTask->deadline) {
+                    $diffDays = now()->startOfDay()->diffInDays($freshTask->deadline, false);
+                    if ($diffDays >= 1) {
+                        $pts = 15;
+                        $bonusMsg = '+15 Poin Bonus! (Selesai H-1 sebelum deadline)';
+                    }
+                }
+
+                $rewardResult = $user->addPoints($pts);
+                $reward = array_merge($rewardResult, ['message' => $bonusMsg]);
+            }
+        }
+
+        $resData = $freshTask->toArray();
+        if ($reward) {
+            $resData['reward'] = $reward;
+        }
+
+        return response()->json($resData);
     }
 
     public function destroy(Request $request, Task $task): JsonResponse
@@ -107,6 +139,40 @@ class TaskController extends Controller
         ]);
     }
 
+    public function exportIcs(Request $request)
+    {
+        $tasks = $request->user('web')->tasks()->whereNotNull('deadline')->get();
+
+        $ics = "BEGIN:VCALENDAR\r\n";
+        $ics .= "VERSION:2.0\r\n";
+        $ics .= "PRODID:-//TaskMate//NONSGML TaskMate Student Calendar//ID\r\n";
+        $ics .= "CALSCALE:GREGORIAN\r\n";
+        $ics .= "X-WR-CALNAME:Deadline TaskMate\r\n";
+
+        foreach ($tasks as $t) {
+            $dtStart = $t->deadline->format('Ymd\THis');
+            $dtEnd = $t->deadline->copy()->addHour()->format('Ymd\THis');
+            $summary = str_replace(["\r", "\n"], ' ', $t->title);
+            $desc = str_replace(["\r", "\n"], ' ', ($t->mata_kuliah ? '['.$t->mata_kuliah.'] ' : '').($t->description ?? ''));
+
+            $ics .= "BEGIN:VEVENT\r\n";
+            $ics .= "UID:taskmate-".$t->id."@ulbi.ac.id\r\n";
+            $ics .= "DTSTAMP:".now()->format('Ymd\THis\Z')."\r\n";
+            $ics .= "DTSTART;VALUE=DATE:".$t->deadline->format('Ymd')."\r\n";
+            $ics .= "SUMMARY:".$summary."\r\n";
+            $ics .= "DESCRIPTION:".$desc."\r\n";
+            $ics .= "STATUS:".($t->status === 'done' ? 'CANCELLED' : 'CONFIRMED')."\r\n";
+            $ics .= "END:VEVENT\r\n";
+        }
+
+        $ics .= "END:VCALENDAR\r\n";
+
+        return response($ics, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="taskmate_calendar.ics"',
+        ]);
+    }
+
     private function validateTask(Request $request, bool $partial = false): array
     {
         $rules = [
@@ -115,11 +181,14 @@ class TaskController extends Controller
             'description' => ['nullable', 'string'],
             'status' => [$partial ? 'sometimes' : 'required', Rule::in(['todo', 'doing', 'review', 'done'])],
             'priority' => [$partial ? 'sometimes' : 'required', Rule::in(['high', 'medium', 'low'])],
+            'tag' => ['nullable', 'string', 'max:100'],
             'deadline' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
             'checklist' => ['nullable', 'array'],
             'checklist.*.text' => ['required', 'string'],
             'checklist.*.done' => ['boolean'],
+            'attachments' => ['nullable', 'array'],
+            'assigned_to' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
 

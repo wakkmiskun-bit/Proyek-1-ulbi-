@@ -152,8 +152,11 @@ function taskPayload(data) {
     description: data.desc || '',
     status: data.col,
     priority: data.priority,
+    tag: data.tag || null,
     due_date: data.due || null,
     checklist: data.checklist || [],
+    attachments: data.attachments || [],
+    assigned_to: data.assigned_to || null,
   };
 }
 
@@ -231,12 +234,12 @@ document.querySelectorAll('.add-btn').forEach(btn => {
 // ═══════════════════════════════════════════
 //  CREATE CARD
 // ═══════════════════════════════════════════
-async function createCard(col, title, priority='medium', due='', checklist=[], mata_kuliah='') {
+async function createCard(col, title, priority='medium', due='', checklist=[], mata_kuliah='', tag='', attachments=[], assigned_to='') {
   const targetCol = 'todo';
   const saved = await apiFetch(taskCreateUrl(), {
     method: 'POST',
     body: JSON.stringify({
-      ...taskPayload({ title, mata_kuliah: mata_kuliah || null, desc: '', priority, due, checklist, col: targetCol }),
+      ...taskPayload({ title, mata_kuliah: mata_kuliah || null, desc: '', priority, due, checklist, tag, attachments, assigned_to, col: targetCol }),
       status: targetCol,
     }),
   });
@@ -251,14 +254,25 @@ function mountCard(task) {
   const card = document.createElement('div');
   card.className = 'card';
   card.dataset.taskId = task.id;
+
+  let parsedAttachments = [];
+  if (Array.isArray(task.attachments)) {
+    parsedAttachments = task.attachments;
+  } else if (typeof task.attachments === 'string' && task.attachments.trim()) {
+    try { parsedAttachments = JSON.parse(task.attachments); } catch (_) { parsedAttachments = [task.attachments]; }
+  }
+
   const data = {
     id: task.id,
     title: task.title,
     mata_kuliah: task.mata_kuliah || '',
     desc: task.description || '',
     priority: task.priority,
+    tag: task.tag || '',
     due: task.due_date ? String(task.due_date).slice(0, 10) : '',
     checklist: Array.isArray(task.checklist) ? [...task.checklist] : [],
+    attachments: parsedAttachments,
+    assigned_to: task.assigned_to || '',
     col,
   };
   cardStore.set(card, data);
@@ -387,6 +401,24 @@ function renderCard(card) {
   const canLeft = colIdx > 0;
   const canRight = colIdx < COLS.length - 1;
 
+  const tagClassMap = {
+    'Ujian': 'tag-ujian',
+    'Tugas Kelompok': 'tag-kelompok',
+    'PR': 'tag-pr',
+    'Proyek': 'tag-proyek',
+    'Kuis': 'tag-kuis'
+  };
+  const tagHtml = data.tag ? `<span class="task-tag-badge ${tagClassMap[data.tag] || 'tag-pr'}"><i class="fa-solid fa-tag"></i> ${esc(data.tag)}</span>` : '';
+  const assigneeHtml = data.assigned_to ? `<div class="task-assignee-badge"><i class="fa-solid fa-user-group"></i> ${esc(data.assigned_to)}</div>` : '';
+  
+  let attachmentUrl = '';
+  if (Array.isArray(data.attachments) && data.attachments.length > 0) {
+    attachmentUrl = data.attachments[0];
+  } else if (typeof data.attachments === 'string') {
+    attachmentUrl = data.attachments;
+  }
+  const attachmentHtml = attachmentUrl ? `<a href="${esc(attachmentUrl)}" target="_blank" onclick="event.stopPropagation()" class="task-attachment-chip"><i class="fa-solid fa-paperclip"></i> Berkas / Link</a>` : '';
+
   card.innerHTML = `
     <div class="card-top">
       <div class="card-title">${esc(data.title)}</div>
@@ -398,7 +430,12 @@ function renderCard(card) {
         <button class="card-del-btn" title="Hapus">✕</button>
       </div>
     </div>
-    <div class="priority-badge ${data.priority}">${priorityLabel(data.priority)}</div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:8px;">
+      <div class="priority-badge ${data.priority}">${priorityLabel(data.priority)}</div>
+      ${tagHtml}
+    </div>
+    ${assigneeHtml}
+    ${attachmentHtml}
     ${total > 0 ? `<div class="card-progress-wrap">
       <div class="card-progress-row">
         <span class="card-progress-label">Progress</span>
@@ -442,13 +479,36 @@ function renderCard(card) {
   card.onclick = () => openModal(card);
 }
 
+function handleReward(resData) {
+  if (resData && resData.reward) {
+    const r = resData.reward;
+    toast(r.message || `+${r.added_points} Poin Reward! 🎉`, '🎉');
+    const gLevelTitle = document.getElementById('gLevelTitle');
+    const gUserPoints = document.getElementById('gUserPoints');
+    const gCurrentPts = document.getElementById('gCurrentPts');
+    const gNextPts = document.getElementById('gNextPts');
+    const gXpFill = document.getElementById('gXpFill');
+
+    if (gLevelTitle) gLevelTitle.textContent = r.level_title;
+    if (gUserPoints) gUserPoints.textContent = r.total_points;
+    if (gCurrentPts) gCurrentPts.textContent = r.total_points;
+    if (gNextPts) gNextPts.textContent = r.next_level_points || 50;
+    if (gXpFill) {
+      const target = r.next_level_points || 50;
+      const pct = Math.min(100, Math.round((r.total_points / target) * 100));
+      gXpFill.style.width = pct + '%';
+    }
+  }
+}
+
 async function moveCard(card, toCol) {
   const data = cardStore.get(card);
   const fromCol = card.closest('.list').dataset.col;
   if (fromCol === toCol || !data?.id) return;
 
+  let res = null;
   try {
-    await apiFetch(taskItemUrl(data.id), {
+    res = await apiFetch(taskItemUrl(data.id), {
       method: 'PUT',
       body: JSON.stringify({ ...taskPayload(data), status: toCol }),
     });
@@ -466,6 +526,7 @@ async function moveCard(card, toCol) {
       card.style.opacity = '1'; card.style.transform = '';
       renderCard(card);
       updateStats();
+      handleReward(res);
       toast(`Dipindahkan ke ${colLabel(toCol)}`, moveEmoji(toCol));
     }, 50);
   }, 200);
@@ -481,7 +542,7 @@ function initSortable() {
     if (!el) return;
     new Sortable(el, {
       group: 'shared', animation: 180,
-      ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+      ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', chosenClass: 'sortable-chosen',
       async onEnd(evt) {
         const card = evt.item;
         const newCol = card.closest('.list').dataset.col;
@@ -490,11 +551,12 @@ function initSortable() {
           const prevCol = data.col;
           data.col = newCol;
           try {
-            await apiFetch(taskItemUrl(data.id), {
+            const res = await apiFetch(taskItemUrl(data.id), {
               method: 'PUT',
               body: JSON.stringify({ ...taskPayload(data), status: newCol }),
             });
             renderCard(card);
+            handleReward(res);
             toast(`Dipindahkan ke ${colLabel(newCol)}`, moveEmoji(newCol));
           } catch (_) {
             data.col = prevCol;
@@ -528,8 +590,24 @@ function openModal(card) {
   document.getElementById('mTitle').value = data.title;
   const mkEl = document.getElementById('mMataKuliah');
   if (mkEl) mkEl.value = data.mata_kuliah || '';
+  const tagEl = document.getElementById('mTag');
+  if (tagEl) tagEl.value = data.tag || '';
   document.getElementById('mDesc').value = data.desc;
   document.getElementById('mDue').value = data.due || '';
+
+  const assignEl = document.getElementById('mAssignedTo');
+  if (assignEl) assignEl.value = data.assigned_to || '';
+
+  const attEl = document.getElementById('mAttachmentUrl');
+  if (attEl) {
+    let attVal = '';
+    if (Array.isArray(data.attachments) && data.attachments.length > 0) {
+      attVal = data.attachments[0];
+    } else if (typeof data.attachments === 'string') {
+      attVal = data.attachments;
+    }
+    attEl.value = attVal;
+  }
 
   // priority
   document.querySelectorAll('.mp-opt').forEach(b => {
@@ -574,20 +652,31 @@ document.getElementById('modalSaveBtn').onclick = async () => {
   data.title = newTitle;
   const mkEl = document.getElementById('mMataKuliah');
   data.mata_kuliah = mkEl ? mkEl.value.trim() || null : null;
+  const tagEl = document.getElementById('mTag');
+  data.tag = tagEl ? tagEl.value || null : null;
   data.desc = document.getElementById('mDesc').value.trim();
   data.priority = activePriority;
   data.due = document.getElementById('mDue').value;
+
+  const assignEl = document.getElementById('mAssignedTo');
+  data.assigned_to = assignEl ? assignEl.value.trim() || null : null;
+
+  const attEl = document.getElementById('mAttachmentUrl');
+  const attVal = attEl ? attEl.value.trim() : '';
+  data.attachments = attVal ? [attVal] : [];
+
   if (isChecklistComplete(data.checklist)) data.col = 'done';
 
   if (!data.id) return;
 
   try {
-    await apiFetch(taskItemUrl(data.id), {
+    const res = await apiFetch(taskItemUrl(data.id), {
       method: 'PUT',
       body: JSON.stringify(taskPayload(data)),
     });
     renderCard(activeCard);
     updateStats();
+    handleReward(res);
     closeModal();
     toast('Card disimpan', '✅');
   } catch (_) {}
@@ -854,8 +943,196 @@ function updateStats(skipWidgets = false) {
     renderDashboardDeadlineList();
     renderCalendar();
     renderNotificationsFeed();
+    initProductivityChart();
   }
 }
+
+// ═══════════════════════════════════════════
+//  APEXCHARTS PRODUCTIVITY CHART
+// ═══════════════════════════════════════════
+let productivityChartInstance = null;
+
+function initProductivityChart() {
+  const chartEl = document.getElementById('productivityChart');
+  if (!chartEl || typeof ApexCharts === 'undefined') return;
+
+  const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+  const completedPerDay = [0, 0, 0, 0, 0, 0, 0];
+  const activePerDay = [0, 0, 0, 0, 0, 0, 0];
+
+  cardStore.forEach(data => {
+    let dayIdx = 0;
+    if (data.due) {
+      const d = new Date(data.due);
+      dayIdx = (d.getDay() + 6) % 7;
+    } else {
+      dayIdx = (data.id % 7);
+    }
+    if (data.col === 'done') {
+      completedPerDay[dayIdx]++;
+    } else {
+      activePerDay[dayIdx]++;
+    }
+  });
+
+  const isDark = document.body.classList.contains('dark') || !isLight;
+  const textColor = isDark ? '#f5f5f7' : '#0f172a';
+
+  const options = {
+    series: [{
+      name: 'Tugas Selesai',
+      data: completedPerDay
+    }, {
+      name: 'Tugas Aktif',
+      data: activePerDay
+    }],
+    chart: {
+      type: 'bar',
+      height: 250,
+      toolbar: { show: false },
+      fontFamily: 'DM Sans, sans-serif'
+    },
+    colors: ['#10b981', '#e91e63'],
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '45%',
+        borderRadius: 6
+      },
+    },
+    dataLabels: { enabled: false },
+    stroke: { show: true, width: 2, colors: ['transparent'] },
+    xaxis: {
+      categories: days,
+      labels: { style: { colors: textColor } }
+    },
+    yaxis: {
+      labels: { style: { colors: textColor } }
+    },
+    fill: { opacity: 1 },
+    tooltip: {
+      theme: isDark ? 'dark' : 'light',
+      y: { formatter: (val) => val + " Tugas" }
+    },
+    legend: {
+      labels: { colors: textColor }
+    }
+  };
+
+  if (productivityChartInstance) {
+    productivityChartInstance.destroy();
+  }
+  productivityChartInstance = new ApexCharts(chartEl, options);
+  productivityChartInstance.render();
+}
+
+// ═══════════════════════════════════════════
+//  POMODORO FOCUS TIMER LOGIC
+// ═══════════════════════════════════════════
+let pomoTimerId = null;
+let pomoMode = 'focus'; // 'focus', 'shortBreak', 'longBreak'
+let pomoSeconds = 25 * 60;
+let pomoIsRunning = false;
+
+function updatePomoDisplay() {
+  const display = document.getElementById('pomoTimeDisplay');
+  if (!display) return;
+  const m = Math.floor(pomoSeconds / 60);
+  const s = pomoSeconds % 60;
+  display.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function initPomodoro() {
+  const startBtn = document.getElementById('pomoStartBtn');
+  const resetBtn = document.getElementById('pomoResetBtn');
+  const stateBadge = document.getElementById('pomoStateBadge');
+  if (!startBtn) return;
+
+  const modeTimes = {
+    focus: 25 * 60,
+    shortBreak: 5 * 60,
+    longBreak: 15 * 60
+  };
+
+  const modeLabels = {
+    focus: 'Belajar (25m)',
+    shortBreak: 'Istirahat (5m)',
+    longBreak: 'Istirahat Panjang (15m)'
+  };
+
+  document.querySelectorAll('[data-pomo-mode]').forEach(btn => {
+    btn.onclick = () => {
+      pomoMode = btn.dataset.pomo-mode;
+      document.querySelectorAll('[data-pomo-mode]').forEach(b => b.classList.toggle('active', b === btn));
+      clearInterval(pomoTimerId);
+      pomoIsRunning = false;
+      startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Fokus';
+      pomoSeconds = modeTimes[pomoMode];
+      if (stateBadge) stateBadge.textContent = modeLabels[pomoMode];
+      updatePomoDisplay();
+    };
+  });
+
+  startBtn.onclick = () => {
+    if (pomoIsRunning) {
+      clearInterval(pomoTimerId);
+      pomoIsRunning = false;
+      startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Lanjutkan';
+    } else {
+      pomoIsRunning = true;
+      startBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Jeda';
+      pomoTimerId = setInterval(() => {
+        if (pomoSeconds > 0) {
+          pomoSeconds--;
+          updatePomoDisplay();
+        } else {
+          clearInterval(pomoTimerId);
+          pomoIsRunning = false;
+          startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai';
+          const taskSel = document.getElementById('pomoTaskSelect');
+          const taskName = taskSel && taskSel.options[taskSel.selectedIndex]?.value ? taskSel.options[taskSel.selectedIndex].text : '';
+          toast(`Waktu ${modeLabels[pomoMode]} Selesai! ${taskName ? 'Fokus tugas: ' + taskName : ''}`, '🔔');
+          pomoSeconds = modeTimes[pomoMode];
+          updatePomoDisplay();
+        }
+      }, 1000);
+    }
+  };
+
+  resetBtn.onclick = () => {
+    clearInterval(pomoTimerId);
+    pomoIsRunning = false;
+    startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Fokus';
+    pomoSeconds = modeTimes[pomoMode];
+    updatePomoDisplay();
+  };
+
+  updatePomoDisplay();
+}
+
+// ═══════════════════════════════════════════
+//  GOOGLE CALENDAR SYNC HANDLER
+// ═══════════════════════════════════════════
+document.getElementById('syncGoogleCalBtn')?.addEventListener('click', () => {
+  let firstTask = null;
+  cardStore.forEach(data => {
+    if (!firstTask && data.col !== 'done' && data.due) {
+      firstTask = data;
+    }
+  });
+
+  if (!firstTask) {
+    toast('Tidak ada tugas aktif dengan deadline untuk disinkronkan', 'ℹ️');
+    return;
+  }
+
+  const title = encodeURIComponent(firstTask.title);
+  const details = encodeURIComponent((firstTask.mata_kuliah ? '['+firstTask.mata_kuliah+'] ' : '') + (firstTask.desc || ''));
+  const dStr = firstTask.due.replace(/-/g, '');
+  const dates = `${dStr}T090000Z/${dStr}T100000Z`;
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}`;
+  window.open(url, '_blank');
+});
 
 // ═══════════════════════════════════════════
 //  DASHBOARD HOME DYNAMIC WIDGETS
@@ -875,7 +1152,19 @@ function renderDashboardDeadlineList() {
   const upcoming = tasks.slice(0, 5);
 
   if (upcoming.length === 0) {
-    listEl.innerHTML = '<div class="empty-state-dashboard">Tidak ada tugas mendekati deadline.</div>';
+    listEl.innerHTML = `
+      <div class="empty-state-wrapper">
+        <svg class="empty-state-illustration" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="80" fill="#FCE7F3" opacity="0.6"/>
+          <path d="M60 130C60 130 80 150 100 150C120 150 140 130 140 130" stroke="#EC4899" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="75" cy="85" r="8" fill="#DB2777"/>
+          <circle cx="125" cy="85" r="8" fill="#DB2777"/>
+          <path d="M40 95L80 135L160 55" stroke="#10B981" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="empty-state-title">Hore! Semua tugas selesai 🎉</div>
+        <div class="empty-state-sub">Tidak ada tugas mendekati tenggat. Saatnya bersantai! ☕</div>
+      </div>
+    `;
     return;
   }
 
@@ -897,6 +1186,7 @@ function renderDashboardDeadlineList() {
         <div class="task-info-right">
           <span class="task-due-text">Deadline: ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
           <span class="task-due-badge ${badgeClass}">${badgeText}</span>
+          <a href="https://wa.me/?text=${encodeURIComponent('Reminder TaskMate: Tugas "'+t.title+'" memiliki deadline pada '+d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }))}" target="_blank" onclick="event.stopPropagation()" class="task-due-badge" style="background:#25D366; color:#fff; text-decoration:none;" title="Kirim Pengingat WhatsApp"><i class="fa-brands fa-whatsapp"></i> WA</a>
         </div>
       </div>
     `;
@@ -917,7 +1207,7 @@ window.quickCompleteTask = async function(taskId, checkbox) {
   if (checkbox) checkbox.disabled = true;
 
   try {
-    await apiFetch(taskItemUrl(foundData.id), {
+    const res = await apiFetch(taskItemUrl(foundData.id), {
       method: 'PUT',
       body: JSON.stringify({ ...taskPayload(foundData), status: 'done' }),
     });
@@ -926,9 +1216,7 @@ window.quickCompleteTask = async function(taskId, checkbox) {
     foundData.col = 'done';
     renderCard(foundCard);
     updateStats();
-    renderDashboardDeadlineList();
-    renderCalendar();
-    renderNotificationsFeed();
+    handleReward(res);
     toast('Tugas diselesaikan!', '✅');
   } catch (error) {
     if (checkbox) {
@@ -1064,7 +1352,17 @@ function renderNotificationsFeed() {
   });
 
   if (notifications.length === 0) {
-    feedEl.innerHTML = '<div class="empty-state-dashboard">Semua aman! Tidak ada peringatan tugas mendekati deadline.</div>';
+    feedEl.innerHTML = `
+      <div class="empty-state-wrapper">
+        <svg class="empty-state-illustration" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="80" fill="#E0F2FE" opacity="0.7"/>
+          <path d="M70 100L90 120L135 75" stroke="#0284C7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="100" cy="100" r="70" stroke="#38BDF8" stroke-width="4" stroke-dasharray="8 8"/>
+        </svg>
+        <div class="empty-state-title">Semua Aman & Bebas Peringatan! 🔔</div>
+        <div class="empty-state-sub">Tidak ada pengingat tenggat waktu kritis. Pekerjaan Anda terkendali!</div>
+      </div>
+    `;
     return;
   }
 
@@ -1080,7 +1378,8 @@ function renderNotificationsFeed() {
   `).join('');
 }
 
-// Pemicu pemuatan awal sudah dideklarasikan di bawah.
-
-// Trigger load
-loadTasks().catch(() => toast('Gagal memuat tugas dari server', '⚠️'));
+// Trigger load and init widgets
+loadTasks().then(() => {
+  initPomodoro();
+  initProductivityChart();
+}).catch(() => toast('Gagal memuat tugas dari server', '⚠️'));
